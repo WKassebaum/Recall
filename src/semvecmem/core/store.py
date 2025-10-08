@@ -1,11 +1,15 @@
 """Unified Vector Store with dimension verification."""
 
 import hashlib
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 
 from semvecmem.embedders.base import EmbedderModel
+
+if TYPE_CHECKING:
+    from semvecmem.backends.qdrant import QdrantBackend
 
 
 class DimensionMismatchError(Exception):
@@ -49,13 +53,19 @@ class UnifiedVectorStore:
     routing to the correct collection based on embedder dimension.
     """
 
-    def __init__(self) -> None:
-        """Initialize unified vector store (POC - no actual backend)."""
+    def __init__(self, backend: "QdrantBackend | None" = None) -> None:
+        """
+        Initialize unified vector store.
+
+        Args:
+            backend: Optional Qdrant backend (uses in-memory if None)
+        """
         self.active_embedder: EmbedderModel | None = None
         self.active_dimension: int | None = None
         self.active_collection: str | None = None
+        self.backend = backend
 
-        # POC: Simple in-memory storage
+        # In-memory storage (used if no backend provided)
         self._storage: dict[str, list[Chunk]] = {}
 
     def set_embedder(self, embedder: EmbedderModel) -> None:
@@ -70,7 +80,9 @@ class UnifiedVectorStore:
         self.active_collection = f"semvecmem_{self.active_dimension}d"
 
         # Ensure collection exists
-        if self.active_collection not in self._storage:
+        if self.backend:
+            self.backend.ensure_collection(self.active_collection, self.active_dimension)
+        elif self.active_collection not in self._storage:
             self._storage[self.active_collection] = []
 
     def upsert(self, chunks: list[Chunk]) -> None:
@@ -122,13 +134,17 @@ class UnifiedVectorStore:
         """Store chunk, replacing if ID exists."""
         assert self.active_collection is not None  # Type narrowing
 
-        # Replace existing if ID exists
-        existing_ids = {c.id for c in self._storage[self.active_collection]}
-        if chunk.id in existing_ids:
-            self._storage[self.active_collection] = [
-                c for c in self._storage[self.active_collection] if c.id != chunk.id
-            ]
-        self._storage[self.active_collection].append(chunk)
+        if self.backend:
+            # Use Qdrant backend
+            self.backend.upsert_chunks(self.active_collection, [chunk])
+        else:
+            # Use in-memory storage
+            existing_ids = {c.id for c in self._storage[self.active_collection]}
+            if chunk.id in existing_ids:
+                self._storage[self.active_collection] = [
+                    c for c in self._storage[self.active_collection] if c.id != chunk.id
+                ]
+            self._storage[self.active_collection].append(chunk)
 
     def search(self, query: str, top_k: int = 5) -> list[Chunk]:
         """
@@ -154,12 +170,16 @@ class UnifiedVectorStore:
 
         # Search
         assert self.active_collection is not None  # Type narrowing
-        chunks = self._storage.get(self.active_collection, [])
-        if not chunks:
-            return []
 
-        # Rank and return top_k
-        return self._rank_chunks(query_vector, chunks, top_k)
+        if self.backend:
+            # Use Qdrant backend
+            return self.backend.search(self.active_collection, query_vector, top_k)
+        else:
+            # Use in-memory storage
+            chunks = self._storage.get(self.active_collection, [])
+            if not chunks:
+                return []
+            return self._rank_chunks(query_vector, chunks, top_k)
 
     def _verify_query_dimension(self, query_vector: npt.NDArray[np.float32]) -> None:
         """Verify query embedding dimension matches active dimension."""
@@ -194,4 +214,8 @@ class UnifiedVectorStore:
         """Get count of chunks in active collection."""
         if not self.active_collection:
             return 0
-        return len(self._storage.get(self.active_collection, []))
+
+        if self.backend:
+            return self.backend.count(self.active_collection)
+        else:
+            return len(self._storage.get(self.active_collection, []))

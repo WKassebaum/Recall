@@ -1,13 +1,9 @@
 # SemVecMem Configuration
 
-# OLLAMA CONFIGURATION (Native macOS - Metal GPU acceleration)
-ollama:
-  host: localhost
-  port: 11434
-  # Run natively (not Docker) for GPU access on macOS
-
-# PRIMARY MODEL (default)
-embedder: snowflake/arctic-embed-m  # 87% accuracy, 1024D
+# EMBEDDER CONFIGURATION (sentence-transformers via HuggingFace)
+embedder:
+  model: Snowflake/snowflake-arctic-embed-m  # 768D, CPU-optimized
+  # Model is auto-downloaded and cached at ~/.cache/huggingface/hub/
 
 # 2-TIER FALLBACK (Zen validated, 9/10 confidence)
 fallback:
