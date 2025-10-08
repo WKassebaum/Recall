@@ -1,0 +1,46 @@
+# SemVecMem Configuration
+
+# PRIMARY MODEL (default)
+embedder: snowflake/arctic-embed-m  # 87% accuracy, 1024D
+
+# 2-TIER FALLBACK (Zen validated, 9/10 confidence)
+fallback:
+  enabled: true
+  model: all-MiniLM-L6-v2  # 78.1% accuracy, 384D (most reliable)
+
+# USER-SELECTABLE ALTERNATIVES (manual switch, not auto-fallback)
+available_models:
+  - snowflake/arctic-embed-m   # 87% - default
+  - nomic-embed-text-v1.5      # 86.2% - long context (8K tokens)
+  - bge-small-en-v1.5          # 84.7% - balanced
+  - all-MiniLM-L6-v2           # 78.1% - speed
+
+# QDRANT CONFIGURATION
+qdrant:
+  host: localhost
+  port: 6333
+  # api_key: optional - uncomment and set if using Qdrant Cloud
+
+# MULTI-COLLECTION (auto-managed by UnifiedVectorStore)
+collections:
+  auto_create: true
+  # semvecmem_384d, semvecmem_768d, semvecmem_1024d created automatically
+
+# MONITORING
+monitoring:
+  alert_on_fallback: true  # Alert when Arctic fails and MiniLM activates
+  log_dimension_mismatches: true
+
+# CHUNKING
+chunking:
+  max_chunk_size: 512  # tokens
+  overlap: 50          # tokens
+  languages:
+    - python
+    - javascript
+    - typescript
+
+# LOGGING
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

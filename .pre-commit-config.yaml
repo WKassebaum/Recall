@@ -1,0 +1,55 @@
+repos:
+  - repo: local
+    hooks:
+      - id: complexity-check
+        name: Cyclomatic Complexity Check (CC ≤ 10)
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/radon cc src/semvecmem/ -n C'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: maintainability-check
+        name: Maintainability Index Check (MI ≥ B)
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/radon mi src/semvecmem/ -n C'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: test-coverage
+        name: Test Coverage Check (≥ 80%)
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/pytest --cov=src/semvecmem --cov-fail-under=80 -q'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: type-check
+        name: Type Check (mypy strict)
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/mypy src/semvecmem/ --strict'
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: code-quality
+        name: Code Quality Check (ruff)
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/ruff check src/semvecmem/'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3.13
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-json
+      - id: check-toml
+      - id: mixed-line-ending
