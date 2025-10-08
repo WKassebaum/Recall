@@ -6,30 +6,38 @@
 
 A long-term semantic memory system for coding agents (Claude Code, Grok CLI) that addresses context window limitations through vector embeddings and fuzzy retrieval.
 
-## 🎯 Status: Pre-Implementation Planning
+## 🎯 Status: Quality-Gated Implementation Ready
 
-This repository contains **comprehensive planning documentation** for SemVecMem v1.2. Implementation begins shortly.
+This repository contains **comprehensive planning documentation** for SemVecMem v1.3.1. Implementation ready with quality-first approach.
 
 ### Current Phase
 - ✅ Requirements analysis complete
-- ✅ Architecture designed and validated
-- ✅ Embedding model evaluation complete (4 models, 87% accuracy)
-- ✅ Hardware validation (M1 Max confirmed excellent fit)
-- 🚀 Ready for Phase 1 implementation
+- ✅ Architecture validated (independent + Zen MCP consensus, 9/10 confidence)
+- ✅ Embedding model evaluation complete (4 models, Arctic 87% accuracy)
+- ✅ Hardware validation (M1 Max confirmed excellent fit, <8% RAM)
+- ✅ Quality-gated plan with 17 testing waypoints
+- ✅ Multi-collection strategy validated (dimension mismatch prevention)
+- ✅ 2-tier fallback validated (Arctic → MiniLM, 9/10 confidence)
+- 🚀 Ready for POC phase (testing infrastructure setup)
 
 ## 📚 Documentation
 
-### Quick Start
-- **[EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md)** - 5-minute overview, go/no-go decision
-- **[IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md)** - Phase-by-phase checklist
-
-### Detailed Analysis
-- **[PROJECT_ANALYSIS_REPORT.md](PROJECT_ANALYSIS_REPORT.md)** - Complete technical analysis (architecture, research, risk)
-- **[PRD_UPDATES_v1.2.md](PRD_UPDATES_v1.2.md)** - v1.2 changes (expanded embedding models)
-- **[semantic-memory-project-starter-v1.1.markdown](semantic-memory-project-starter-v1.1.markdown)** - Original PRD
-
-### Development Reference
+### 🚀 Start Here (Implementation)
+- **[QUALITY_GATED_IMPLEMENTATION_PLAN.md](QUALITY_GATED_IMPLEMENTATION_PLAN.md)** - **PRIMARY REFERENCE** - 17 testing waypoints, quality gates
 - **[CLAUDE.md](CLAUDE.md)** - Guidance for Claude Code when working in this repo
+- **[GO_FORWARD_PLAN_v1.3.1.md](GO_FORWARD_PLAN_v1.3.1.md)** - Detailed implementation plan with Zen insights
+
+### Architecture & Validation
+- **[ZEN_VALIDATION_FINAL_SYNTHESIS.md](ZEN_VALIDATION_FINAL_SYNTHESIS.md)** - Zen MCP consensus validation (o3-mini, 9/10 confidence)
+- **[CRITICAL_REVIEW_SUMMARY.md](CRITICAL_REVIEW_SUMMARY.md)** - TL;DR of 7 critical issues + solutions
+- **[ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md)** - Comprehensive architecture analysis (59 pages)
+- **[ROADMAP_UPDATES_v1.3.md](ROADMAP_UPDATES_v1.3.md)** - Updated phase breakdowns with fixes
+
+### Original Specification
+- **[EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md)** - 5-minute overview
+- **[PROJECT_ANALYSIS_REPORT.md](PROJECT_ANALYSIS_REPORT.md)** - Complete technical analysis
+- **[PRD_UPDATES_v1.2.md](PRD_UPDATES_v1.2.md)** - v1.2 embedding model expansion
+- **[semantic-memory-project-starter-v1.1.markdown](semantic-memory-project-starter-v1.1.markdown)** - Original PRD
 
 ## 🚀 Key Features (Planned)
 
@@ -51,14 +59,18 @@ All models run excellently on M1 Max (<8% of 64GB RAM).
 - Local-first with Qdrant vector database
 - Zero cloud dependencies, no API keys required
 
-## 🎯 Success Metrics
+## 🎯 Success Metrics (Quality Gates)
 
-| Metric | Target | Projected |
-|--------|--------|-----------|
-| Retrieval Accuracy | >85% | **87%** ✅ |
-| Query Latency | <500ms | ~35ms ✅ |
-| Token Overhead | <5% | ~3% ✅ |
-| Code Coverage | >80% | TBD |
+| Metric | Target | How Measured | Gate |
+|--------|--------|--------------|------|
+| **Retrieval Accuracy** | >85% (87% for Arctic) | Benchmark suite | Phase 3 |
+| **Query Latency** | <500ms | Performance tests | Phase 2 |
+| **Token Overhead** | <5% | MCP payload test | Phase 2 |
+| **Code Coverage** | >80% | pytest-cov | All phases |
+| **Cyclomatic Complexity** | ≤6 core, ≤8 complex | radon | All phases |
+| **Maintainability Index** | ≥B | radon | All phases |
+| **Type Safety** | 100% | mypy strict | All phases |
+| **Migration Robustness** | All failures pass | Injection tests | Phase 3 |
 
 ## 🛠️ Planned Architecture
 
@@ -73,13 +85,17 @@ Core Engine
   └─ Vector Store (Qdrant)
 ```
 
-## 📋 Implementation Timeline
+## 📋 Implementation Timeline (Quality-Gated)
 
-- **Phase 1:** Foundation & Core (Days 1-2.5) - Project skeleton, config, embedders, Qdrant
-- **Phase 2:** Ingestion & Retrieval (Days 3-4.5) - Chunking, core pipeline, MCP server
-- **Phase 3:** CLI & Polish (Days 5.5-7) - CLI, benchmarks, docs, tests
+**Philosophy:** Quality gates, not calendar dates. Phases exit when all metrics met.
 
-**Total:** 7 days (56 hours) for production-ready MVP
+- **POC:** Testing infrastructure + Unified API validation (2-3 days, 1 waypoint)
+- **Phase 1:** Foundation (4-5 days, 6 waypoints) - Multi-collection, embedders, unified API
+- **Phase 2:** Ingestion & Retrieval (3-4 days, 4 waypoints) - Chunking, retrieval, MCP
+- **Phase 3:** Migration & Benchmarks (5-6 days, 4 waypoints) - CLI, migration tool, benchmarks
+- **Phase 4:** Polish & Integration (2-3 days, 2 waypoints) - Final testing, performance
+
+**Total:** 14-18 days (quality-first, no rush)
 
 ## 🔧 Hardware Requirements
 
