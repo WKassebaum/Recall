@@ -18,9 +18,33 @@ class PythonChunker:
         self.language = Language(python_language())
         self.parser = Parser(self.language)
 
-    def chunk_code(self, code: str, file_path: str = "") -> list[Chunk]:
+    def chunk(self, content: str, file_path: str = "") -> list[Chunk]:
         """
         Chunk Python code into semantic units.
+
+        Args:
+            content: Python source code
+            file_path: Optional file path for metadata
+
+        Returns:
+            List of code chunks (functions, classes, methods)
+        """
+        tree = self.parser.parse(content.encode("utf-8"))
+        chunks: list[Chunk] = []
+
+        # Extract top-level functions and classes
+        root_node = tree.root_node
+        for node in root_node.children:
+            if node.type in ("function_definition", "class_definition"):
+                chunk_content = content[node.start_byte : node.end_byte]
+                chunk = Chunk(content=chunk_content)
+                chunks.append(chunk)
+
+        return chunks
+
+    def chunk_code(self, code: str, file_path: str = "") -> list[Chunk]:
+        """
+        Chunk Python code into semantic units (deprecated alias).
 
         Args:
             code: Python source code
@@ -29,18 +53,7 @@ class PythonChunker:
         Returns:
             List of code chunks (functions, classes, methods)
         """
-        tree = self.parser.parse(code.encode("utf-8"))
-        chunks: list[Chunk] = []
-
-        # Extract top-level functions and classes
-        root_node = tree.root_node
-        for node in root_node.children:
-            if node.type in ("function_definition", "class_definition"):
-                content = code[node.start_byte : node.end_byte]
-                chunk = Chunk(content=content)
-                chunks.append(chunk)
-
-        return chunks
+        return self.chunk(code, file_path)
 
     def chunk_file(self, file_path: str) -> list[Chunk]:
         """
