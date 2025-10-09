@@ -7,7 +7,12 @@ Tests basic functionality of UnifiedVectorStore with dimension verification.
 import pytest
 import numpy as np
 
-from semvecmem.core.store import UnifiedVectorStore, Chunk, DimensionMismatchError
+from semvecmem.core.store import (
+    UnifiedVectorStore,
+    Chunk,
+    SearchResult,
+    DimensionMismatchError,
+)
 from semvecmem.embedders.mock import MockEmbedder
 
 
@@ -91,6 +96,13 @@ class TestUnifiedVectorStorePOC:
         # Search
         results = store.search("authentication", top_k=2)
         assert len(results) <= 2
+        # Verify results are SearchResult instances
+        for result in results:
+            assert isinstance(result, SearchResult)
+            assert hasattr(result, "content")
+            assert hasattr(result, "score")
+            assert hasattr(result, "chunk_id")
+            assert hasattr(result, "metadata")
 
     def test_deterministic_chunk_ids(self) -> None:
         """POC: Verify content hash generates deterministic IDs."""
@@ -114,6 +126,66 @@ class TestUnifiedVectorStorePOC:
 
         store.upsert([chunk2])
         assert store.count() == 1  # Should still be 1, not 2
+
+    def test_add_with_metadata(self) -> None:
+        """Enhanced API: Verify add() method with metadata."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384)
+        store.set_embedder(embedder)
+
+        # Add chunk with metadata
+        chunk_id = store.add(
+            content="User session data",
+            metadata={"session_id": "abc123", "user": "test_user"},
+        )
+
+        assert isinstance(chunk_id, str)
+        assert len(chunk_id) > 0
+        assert store.count() == 1
+
+    def test_search_with_filtering(self) -> None:
+        """Enhanced API: Verify search with metadata filtering."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384)
+        store.set_embedder(embedder)
+
+        # Add chunks with different sessions
+        store.add(
+            content="Session A: Redis configuration",
+            metadata={"session_id": "session-a"},
+        )
+        store.add(
+            content="Session B: PostgreSQL setup",
+            metadata={"session_id": "session-b"},
+        )
+        store.add(
+            content="Session A: Authentication logic",
+            metadata={"session_id": "session-a"},
+        )
+
+        # Search without filter - should return all relevant chunks
+        all_results = store.search("database", top_k=10)
+        assert len(all_results) >= 2
+
+        # Search with filter - should only return session-a chunks
+        filtered_results = store.search("configuration", filter={"session_id": "session-a"})
+        for result in filtered_results:
+            assert result.metadata.get("session_id") == "session-a"
+
+    def test_search_result_has_scores(self) -> None:
+        """Enhanced API: Verify SearchResult includes similarity scores."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384)
+        store.set_embedder(embedder)
+
+        store.add(content="Python programming language")
+        store.add(content="JavaScript web development")
+
+        results = store.search("Python code")
+
+        for result in results:
+            assert isinstance(result.score, float)
+            assert 0.0 <= result.score <= 1.0  # Cosine similarity range
 
 
 class TestMockEmbedder:

@@ -80,11 +80,17 @@ class QdrantBackend:
         points = []
         for chunk in chunks:
             assert chunk.embedding is not None  # Type narrowing
+            # Store metadata in payload
+            payload = {
+                "content": chunk.content,
+                "original_id": chunk.id,
+                "metadata": chunk.metadata,
+            }
             points.append(
                 PointStruct(
                     id=self._hash_to_uuid(chunk.id),
                     vector=chunk.embedding.tolist(),
-                    payload={"content": chunk.content, "original_id": chunk.id},
+                    payload=payload,
                 )
             )
 
@@ -106,16 +112,27 @@ class QdrantBackend:
             collection_name=collection_name,
             query_vector=query_vector.tolist(),
             limit=top_k,
+            with_vectors=True,  # Ensure vectors are returned for re-ranking
         )
 
         chunks = []
         for result in results:
             # Use original_id from payload if available, otherwise use Qdrant ID
             chunk_id = result.payload.get("original_id", str(result.id))  # type: ignore[union-attr]
+            # Retrieve metadata from payload
+            metadata = result.payload.get("metadata", {})  # type: ignore[union-attr]
+            # Convert vector to properly shaped numpy array
+            if result.vector is None:
+                raise ValueError(
+                    "Qdrant did not return vectors in search results. "
+                    "Ensure with_vectors=True is set in search call."
+                )
+            embedding = np.array(result.vector, dtype=np.float32).reshape(-1)
             chunk = Chunk(
                 content=result.payload["content"],  # type: ignore[index]
-                embedding=np.array(result.vector, dtype=np.float32),
+                embedding=embedding,
                 chunk_id=chunk_id,
+                metadata=metadata,
             )
             chunks.append(chunk)
 

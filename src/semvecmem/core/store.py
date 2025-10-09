@@ -1,6 +1,7 @@
 """Unified Vector Store with dimension verification."""
 
 import hashlib
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -19,13 +20,14 @@ class DimensionMismatchError(Exception):
 
 
 class Chunk:
-    """Code chunk with embedding."""
+    """Code chunk with embedding and metadata."""
 
     def __init__(
         self,
         content: str,
         embedding: npt.NDArray[np.float32] | None = None,
         chunk_id: str | None = None,
+        metadata: dict[str, str] | None = None,
     ):
         """
         Initialize chunk.
@@ -34,15 +36,27 @@ class Chunk:
             content: Chunk content
             embedding: Optional embedding vector
             chunk_id: Optional chunk ID (auto-generated if not provided)
+            metadata: Optional metadata (session_id, timestamps, tags, etc.)
         """
         self.content = content
         self.embedding = embedding
         self.id = chunk_id or self._generate_id(content)
+        self.metadata = metadata or {}
 
     @staticmethod
     def _generate_id(content: str) -> str:
         """Generate deterministic chunk ID from content."""
         return hashlib.sha256(content.encode()).hexdigest()
+
+
+@dataclass
+class SearchResult:
+    """Search result with score and metadata."""
+
+    content: str
+    score: float
+    chunk_id: str
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 class UnifiedVectorStore:
@@ -84,6 +98,25 @@ class UnifiedVectorStore:
             self.backend.ensure_collection(self.active_collection, self.active_dimension)
         elif self.active_collection not in self._storage:
             self._storage[self.active_collection] = []
+
+    def add(self, content: str, metadata: dict[str, str] | None = None) -> str:
+        """
+        Add single chunk with metadata (convenience method).
+
+        Args:
+            content: Content to store
+            metadata: Optional metadata (session_id, tags, timestamps, etc.)
+
+        Returns:
+            Chunk ID of stored chunk
+
+        Raises:
+            ValueError: If no active embedder set
+            DimensionMismatchError: If chunk dimension doesn't match active dimension
+        """
+        chunk = Chunk(content=content, metadata=metadata)
+        self.upsert([chunk])
+        return chunk.id
 
     def upsert(self, chunks: list[Chunk]) -> None:
         """
@@ -146,16 +179,19 @@ class UnifiedVectorStore:
                 ]
             self._storage[self.active_collection].append(chunk)
 
-    def search(self, query: str, top_k: int = 5) -> list[Chunk]:
+    def search(
+        self, query: str, top_k: int = 5, filter: dict[str, str] | None = None
+    ) -> list[SearchResult]:
         """
-        Search for similar chunks.
+        Search for similar chunks with optional filtering.
 
         Args:
             query: Query text
             top_k: Number of results to return
+            filter: Optional metadata filter (e.g., {"session_id": "abc123"})
 
         Returns:
-            List of similar chunks
+            List of search results with scores and metadata
 
         Raises:
             ValueError: If no active embedder set
@@ -172,14 +208,19 @@ class UnifiedVectorStore:
         assert self.active_collection is not None  # Type narrowing
 
         if self.backend:
-            # Use Qdrant backend
-            return self.backend.search(self.active_collection, query_vector, top_k)
+            # Use Qdrant backend (TODO: implement backend filtering)
+            chunks = self.backend.search(self.active_collection, query_vector, top_k * 2)
+            # Apply filter in-memory for now
+            filtered_chunks = self._apply_filter(chunks, filter) if filter else chunks
+            return self._rank_chunks(query_vector, filtered_chunks, top_k)
         else:
             # Use in-memory storage
             chunks = self._storage.get(self.active_collection, [])
             if not chunks:
                 return []
-            return self._rank_chunks(query_vector, chunks, top_k)
+            # Apply filter
+            filtered_chunks = self._apply_filter(chunks, filter) if filter else chunks
+            return self._rank_chunks(query_vector, filtered_chunks, top_k)
 
     def _verify_query_dimension(self, query_vector: npt.NDArray[np.float32]) -> None:
         """Verify query embedding dimension matches active dimension."""
@@ -193,22 +234,57 @@ class UnifiedVectorStore:
                 f"This indicates an embedder configuration error."
             )
 
+    def _apply_filter(self, chunks: list[Chunk], filter: dict[str, str]) -> list[Chunk]:
+        """
+        Apply metadata filter to chunks.
+
+        Args:
+            chunks: Chunks to filter
+            filter: Metadata filter (all conditions must match)
+
+        Returns:
+            Filtered chunks
+        """
+        filtered = []
+        for chunk in chunks:
+            # Check if all filter conditions match
+            matches = all(chunk.metadata.get(key) == value for key, value in filter.items())
+            if matches:
+                filtered.append(chunk)
+        return filtered
+
     def _rank_chunks(
         self, query_vector: npt.NDArray[np.float32], chunks: list[Chunk], top_k: int
-    ) -> list[Chunk]:
-        """Rank chunks by cosine similarity."""
+    ) -> list[SearchResult]:
+        """Rank chunks by cosine similarity and return SearchResult."""
         scores = []
         for chunk in chunks:
             # Cosine similarity
             assert chunk.embedding is not None  # Type narrowing
-            sim = np.dot(query_vector, chunk.embedding) / (
-                np.linalg.norm(query_vector) * np.linalg.norm(chunk.embedding)
+            # Flatten arrays to ensure 1D vectors
+            query_flat = query_vector.flatten()
+            chunk_flat = chunk.embedding.flatten()
+            sim = np.dot(query_flat, chunk_flat) / (
+                np.linalg.norm(query_flat) * np.linalg.norm(chunk_flat)
             )
-            scores.append((chunk, float(sim)))
+            # Convert to Python float (handles both scalar and 0-d array)
+            scores.append((chunk, float(np.asarray(sim).item())))
 
         # Sort by similarity (descending) and return top_k
         scores.sort(key=lambda x: x[1], reverse=True)
-        return [chunk for chunk, _score in scores[:top_k]]
+
+        # Convert to SearchResult
+        results = []
+        for chunk, score in scores[:top_k]:
+            result = SearchResult(
+                content=chunk.content,
+                score=score,
+                chunk_id=chunk.id,
+                metadata=chunk.metadata,
+            )
+            results.append(result)
+
+        return results
 
     def count(self) -> int:
         """Get count of chunks in active collection."""
