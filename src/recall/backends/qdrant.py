@@ -7,7 +7,7 @@ import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
-from semvecmem.core.store import Chunk
+from recall.core.store import Chunk
 
 
 class QdrantBackend:

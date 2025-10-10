@@ -2,7 +2,7 @@
 
 import nltk
 
-from semvecmem.core.store import Chunk
+from recall.core.store import Chunk
 
 
 class ProseChunker:

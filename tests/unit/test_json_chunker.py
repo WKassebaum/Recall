@@ -8,7 +8,7 @@ import json
 
 import pytest
 
-from semvecmem.chunking.json_chunker import JSONChunker
+from recall.chunking.json_chunker import JSONChunker
 
 
 class TestJSONChunker:

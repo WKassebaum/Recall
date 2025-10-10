@@ -7,7 +7,7 @@ Validates HuggingFace model loading and embedding generation.
 import numpy as np
 import pytest
 
-from semvecmem.embedders.sentence_transformer import SentenceTransformerEmbedder
+from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
 
 
 class TestSentenceTransformerEmbedder:

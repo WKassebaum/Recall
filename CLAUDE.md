@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**SemVecMem v1.3.1** - Semantic Vector Memory for Coding Agents
+**Recall v1.3.1** - Semantic Vector Memory for Coding Agents
+
+> **Package Name**: `recall` (renamed from `semvecmem` for simplicity and PyPI availability)
 
 A long-term memory system for coding agents that addresses context window limitations using vector embeddings for fuzzy, semantic retrieval of past sessions, code snippets, and decisions. Exposed via Model Context Protocol (MCP) for low-overhead integration with AI assistants like Claude Code CLI.
 
@@ -31,10 +33,10 @@ Core Engine
   └─ Vector Store (Qdrant)
 ```
 
-### Planned Component Structure
-When implemented, the project will follow this structure (mirrors CodeIndex patterns):
+### Component Structure
+Project structure (mirrors CodeIndex patterns):
 ```
-src/semvecmem/
+src/recall/
   ├─ core/         # Ingestion, embedding, retrieval logic
   ├─ mcp/          # FastMCP server implementation
   ├─ cli/          # Click-based CLI wrapper
@@ -68,8 +70,8 @@ scripts/           # Quality monitoring scripts
 
 **Tools:**
 ```bash
-radon cc src/semvecmem/ -n C      # Fail if any method CC > 10
-radon mi src/semvecmem/ -n B      # Maintainability Index ≥ B
+radon cc src/recall/ -n C      # Fail if any method CC > 10
+radon mi src/recall/ -n B      # Maintainability Index ≥ B
 ```
 
 ### Testing Waypoints (17 Total)
@@ -165,9 +167,9 @@ radon mi src/semvecmem/ -n B      # Maintainability Index ≥ B
 **Architecture:** Separate collections per embedding dimension
 ```yaml
 Collections:
-  semvecmem_384d:   # BGE + MiniLM (384 dimensions)
-  semvecmem_768d:   # Nomic (768 dimensions)
-  semvecmem_1024d:  # Arctic (1024 dimensions, default)
+  recall_384d:   # BGE + MiniLM (384 dimensions)
+  recall_768d:   # Nomic (768 dimensions)
+  recall_1024d:  # Arctic (1024 dimensions, default)
 ```
 
 **Rationale:** Prevents dimension mismatch errors when users switch embedding models
@@ -248,17 +250,17 @@ Selection via `config.yaml` with zero code changes for switching
 2. Request: "Phase 1: Generate project skeleton"
 3. Reference CodeIndex repo for structural patterns: `/Users/wrk/WorkDev/MCP-Dev/claude-codeindex`
 
-### Future Commands (Once Implemented)
+### CLI Commands
 ```bash
 # Qdrant setup
-semvecmem setup-qdrant              # Detect or launch Qdrant via Docker
+recall setup-qdrant              # Detect or launch Qdrant via Docker
 
 # Ingestion
-semvecmem ingest <file> --embedder bge-small-en-v1.5
-semvecmem ingest --session-id abc123 --lang python
+recall ingest <file> --embedder bge-small-en-v1.5
+recall ingest --session-id abc123 --lang python
 
 # Retrieval
-semvecmem recall "query text" --top-k 10
+recall search "query text" --top-k 10
 
 # Testing (Pytest)
 pytest tests/                       # Full test suite
@@ -266,7 +268,7 @@ pytest tests/test_embeddings.py     # Embedding benchmarks
 pytest -k "test_chunker"            # Specific component
 
 # MCP Server
-# (Exact startup command TBD - likely via mcp.json config or direct Python invocation)
+# Configured via Claude Desktop mcp.json
 ```
 
 ### Configuration
@@ -296,7 +298,7 @@ qdrant:
 # MULTI-COLLECTION (auto-managed by UnifiedVectorStore)
 collections:
   auto_create: true
-  # semvecmem_384d, semvecmem_768d, semvecmem_1024d created automatically
+  # recall_384d, recall_768d, recall_1024d created automatically
 
 # MONITORING
 monitoring:

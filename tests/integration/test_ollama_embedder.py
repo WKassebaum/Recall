@@ -10,7 +10,7 @@ instead of Ollama for embeddings. Ollama is only used for LLM reasoning.
 import numpy as np
 import pytest
 
-from semvecmem.embedders.ollama import OllamaEmbedder
+from recall.embedders.ollama import OllamaEmbedder
 
 pytestmark = pytest.mark.skip(reason="Using sentence-transformers for embeddings, not Ollama")
 

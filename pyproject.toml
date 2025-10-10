@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "semvecmem"
+name = "recall"
 version = "0.1.0"
-description = "Semantic Vector Memory for Coding Agents"
+description = "Semantic Vector Memory for Coding Agents - Long-term context and fact tracking"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 authors = [
-    {name = "SemVecMem Contributors"}
+    {name = "Recall Contributors"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -56,12 +56,12 @@ dev = [
 ]
 
 [project.scripts]
-semvecmem = "semvecmem.cli.main:cli"
+recall = "recall.cli.main:cli"
 
 [project.urls]
-Homepage = "https://github.com/WKassebaum/SemVecMem"
-Documentation = "https://github.com/WKassebaum/SemVecMem/blob/master/README.md"
-Repository = "https://github.com/WKassebaum/SemVecMem"
+Homepage = "https://github.com/WKassebaum/recall"
+Documentation = "https://github.com/WKassebaum/recall/blob/master/README.md"
+Repository = "https://github.com/WKassebaum/recall"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -72,7 +72,7 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=semvecmem",
+    "--cov=recall",
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
@@ -80,7 +80,7 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 
 [tool.coverage.run]
-source = ["src/semvecmem"]
+source = ["src/recall"]
 omit = [
     "*/tests/*",
     "*/test_*.py",

@@ -6,7 +6,7 @@ Validates Qdrant connectivity and basic operations.
 
 import pytest
 
-from semvecmem.backends.qdrant import QdrantBackend
+from recall.backends.qdrant import QdrantBackend
 
 
 class TestQdrantConnection:

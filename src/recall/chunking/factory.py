@@ -3,12 +3,12 @@
 import json
 import re
 
-from semvecmem.chunking.base import Chunker
-from semvecmem.chunking.json_chunker import JSONChunker
-from semvecmem.chunking.markdown import MarkdownChunker
-from semvecmem.chunking.prose import ProseChunker
-from semvecmem.chunking.python import PythonChunker
-from semvecmem.core.store import Chunk
+from recall.chunking.base import Chunker
+from recall.chunking.json_chunker import JSONChunker
+from recall.chunking.markdown import MarkdownChunker
+from recall.chunking.prose import ProseChunker
+from recall.chunking.python import PythonChunker
+from recall.core.store import Chunk
 
 
 class ChunkerFactory:

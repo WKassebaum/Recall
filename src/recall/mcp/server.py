@@ -1,4 +1,4 @@
-"""SemVecMem MCP Server - Semantic vector memory for coding agents."""
+"""Recall MCP Server - Semantic vector memory for coding agents."""
 
 from datetime import datetime, timezone
 from typing import Annotated
@@ -6,14 +6,14 @@ from typing import Annotated
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
-from semvecmem.backends.qdrant import QdrantBackend
-from semvecmem.chunking.factory import ChunkerFactory
-from semvecmem.config.loader import Config, load_config
-from semvecmem.core.store import UnifiedVectorStore
-from semvecmem.embedders.sentence_transformer import SentenceTransformerEmbedder
+from recall.backends.qdrant import QdrantBackend
+from recall.chunking.factory import ChunkerFactory
+from recall.config.loader import Config, load_config
+from recall.core.store import UnifiedVectorStore
+from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
 
 # Initialize FastMCP server
-mcp = FastMCP("semvecmem")
+mcp = FastMCP("recall")
 
 # Global components (initialized lazily)
 _config: Config | None = None
@@ -25,7 +25,7 @@ _store: UnifiedVectorStore | None = None
 def get_components() -> (
     tuple[Config, ChunkerFactory, SentenceTransformerEmbedder, UnifiedVectorStore]
 ):
-    """Get or initialize SemVecMem components."""
+    """Get or initialize Recall components."""
     global _config, _chunker_factory, _embedder, _store
 
     if _config is None:
@@ -179,7 +179,7 @@ async def memory_stats() -> str:
     dimension = embedder.dimension
 
     return (
-        f"📊 SemVecMem Statistics:\n"
+        f"📊 Recall Statistics:\n"
         f"Total chunks: {total_chunks}\n"
         f"Active collection: {active_collection}\n"
         f"Embedder: {embedder_name}\n"

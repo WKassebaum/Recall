@@ -2,7 +2,7 @@
 
 import re
 
-from semvecmem.core.store import Chunk
+from recall.core.store import Chunk
 
 
 class MarkdownChunker:

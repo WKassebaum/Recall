@@ -8,7 +8,7 @@ import json
 
 import pytest
 
-from semvecmem.chunking.factory import ChunkerFactory
+from recall.chunking.factory import ChunkerFactory
 
 
 class TestChunkerFactory:

@@ -7,13 +7,13 @@ Tests basic functionality of UnifiedVectorStore with dimension verification.
 import pytest
 import numpy as np
 
-from semvecmem.core.store import (
+from recall.core.store import (
     UnifiedVectorStore,
     Chunk,
     SearchResult,
     DimensionMismatchError,
 )
-from semvecmem.embedders.mock import MockEmbedder
+from recall.embedders.mock import MockEmbedder
 
 
 class TestUnifiedVectorStorePOC:
@@ -28,14 +28,14 @@ class TestUnifiedVectorStorePOC:
         store.set_embedder(embedder_384)
 
         assert store.active_dimension == 384
-        assert store.active_collection == "semvecmem_384d"
+        assert store.active_collection == "recall_384d"
 
         # Switch to 1024D embedder
         embedder_1024 = MockEmbedder(dimension=1024, model_name="mock-1024")
         store.set_embedder(embedder_1024)
 
         assert store.active_dimension == 1024
-        assert store.active_collection == "semvecmem_1024d"
+        assert store.active_collection == "recall_1024d"
 
     def test_dimension_verification_on_upsert(self) -> None:
         """POC: Verify dimension mismatch caught on upsert."""

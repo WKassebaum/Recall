@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from semvecmem.core.store import Chunk
+from recall.core.store import Chunk
 
 
 class Chunker(Protocol):

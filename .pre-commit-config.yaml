@@ -3,35 +3,35 @@ repos:
     hooks:
       - id: complexity-check
         name: Cyclomatic Complexity Check (CC ≤ 10)
-        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/radon cc src/semvecmem/ -n C'
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/radon cc src/recall/ -n C'
         language: system
         pass_filenames: false
         always_run: true
 
       - id: maintainability-check
         name: Maintainability Index Check (MI ≥ B)
-        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/radon mi src/semvecmem/ -n C'
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/radon mi src/recall/ -n C'
         language: system
         pass_filenames: false
         always_run: true
 
       - id: test-coverage
         name: Test Coverage Check (≥ 80%)
-        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/pytest --cov=src/semvecmem --cov-fail-under=80 -q'
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/pytest --cov=src/recall --cov-fail-under=80 -q'
         language: system
         pass_filenames: false
         always_run: true
 
       - id: type-check
         name: Type Check (mypy strict)
-        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/mypy src/semvecmem/ --strict'
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/mypy src/recall/ --strict'
         language: system
         pass_filenames: false
         types: [python]
 
       - id: code-quality
         name: Code Quality Check (ruff)
-        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/ruff check src/semvecmem/'
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/ruff check src/recall/'
         language: system
         types: [python]
         pass_filenames: false

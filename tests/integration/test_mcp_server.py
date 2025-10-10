@@ -6,8 +6,8 @@ Tests MCP server tools with real components (embedder, chunker, Qdrant).
 
 import pytest
 
-from semvecmem.backends.qdrant import QdrantBackend
-from semvecmem.mcp import server
+from recall.backends.qdrant import QdrantBackend
+from recall.mcp import server
 
 
 class TestMCPServerIntegration:
@@ -20,7 +20,7 @@ class TestMCPServerIntegration:
         # Cleanup
         backend = QdrantBackend(host="localhost", port=6333)
         try:
-            backend.delete_collection("semvecmem_768d")
+            backend.delete_collection("recall_768d")
         except Exception:
             pass
 
@@ -180,7 +180,7 @@ def logout_user(session_id):
 
         # Get stats before ingestion
         stats_before = await server.memory_stats()
-        assert "SemVecMem Statistics" in stats_before
+        assert "Recall Statistics" in stats_before
         assert "Total chunks: 0" in stats_before
         assert "Active collection:" in stats_before
         assert "Embedder:" in stats_before
@@ -196,7 +196,7 @@ def logout_user(session_id):
         # Get stats after ingestion
         stats_after = await server.memory_stats()
         assert "Total chunks: 1" in stats_after
-        assert "semvecmem_768d" in stats_after
+        assert "recall_768d" in stats_after
 
     @pytest.mark.asyncio
     async def test_auto_content_type_detection(self, cleanup_collections: None) -> None:

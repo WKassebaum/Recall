@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 import numpy.typing as npt
 
-from semvecmem.embedders.base import EmbedderModel
+from recall.embedders.base import EmbedderModel
 
 if TYPE_CHECKING:
-    from semvecmem.backends.qdrant import QdrantBackend
+    from recall.backends.qdrant import QdrantBackend
 
 
 class DimensionMismatchError(Exception):
@@ -91,7 +91,7 @@ class UnifiedVectorStore:
         """
         self.active_embedder = embedder
         self.active_dimension = embedder.dimension
-        self.active_collection = f"semvecmem_{self.active_dimension}d"
+        self.active_collection = f"recall_{self.active_dimension}d"
 
         # Ensure collection exists
         if self.backend:

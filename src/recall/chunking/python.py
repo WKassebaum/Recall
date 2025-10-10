@@ -3,7 +3,7 @@
 from tree_sitter import Language, Parser
 from tree_sitter_python import language as python_language
 
-from semvecmem.core.store import Chunk
+from recall.core.store import Chunk
 
 
 class PythonChunker:

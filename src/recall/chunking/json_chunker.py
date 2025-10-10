@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from semvecmem.core.store import Chunk
+from recall.core.store import Chunk
 
 
 class JSONChunker:

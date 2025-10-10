@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from semvecmem.config.loader import Config, load_config
+from recall.config.loader import Config, load_config
 
 
 class TestConfigLoader:

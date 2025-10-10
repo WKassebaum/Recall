@@ -6,11 +6,11 @@ Tests complete pipeline: config → embedder → chunker → store → search.
 
 import pytest
 
-from semvecmem.backends.qdrant import QdrantBackend
-from semvecmem.chunking.python import PythonChunker
-from semvecmem.config.loader import load_config
-from semvecmem.core.store import UnifiedVectorStore
-from semvecmem.embedders.sentence_transformer import SentenceTransformerEmbedder
+from recall.backends.qdrant import QdrantBackend
+from recall.chunking.python import PythonChunker
+from recall.config.loader import load_config
+from recall.core.store import UnifiedVectorStore
+from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
 
 
 class TestEndToEndIngestion:
@@ -23,7 +23,7 @@ class TestEndToEndIngestion:
         # Cleanup
         backend = QdrantBackend(host="localhost", port=6333)
         try:
-            backend.delete_collection("semvecmem_768d")
+            backend.delete_collection("recall_768d")
         except Exception:
             pass
 
@@ -91,7 +91,7 @@ def logout_user(session_id):
         """Waypoint 6: Verify dimension verification works with Qdrant backend."""
         import numpy as np
 
-        from semvecmem.core.store import Chunk, DimensionMismatchError
+        from recall.core.store import Chunk, DimensionMismatchError
 
         # Create store with backend
         config = load_config("config.yaml")

@@ -6,7 +6,7 @@ Validates NLTK-based sentence splitting with overlap.
 
 import pytest
 
-from semvecmem.chunking.prose import ProseChunker
+from recall.chunking.prose import ProseChunker
 
 
 class TestProseChunker:

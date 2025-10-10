@@ -6,7 +6,7 @@ Validates section-aware Markdown chunking.
 
 import pytest
 
-from semvecmem.chunking.markdown import MarkdownChunker
+from recall.chunking.markdown import MarkdownChunker
 
 
 class TestMarkdownChunker:

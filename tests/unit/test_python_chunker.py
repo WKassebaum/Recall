@@ -6,7 +6,7 @@ Validates tree-sitter based Python code chunking.
 
 import pytest
 
-from semvecmem.chunking.python import PythonChunker
+from recall.chunking.python import PythonChunker
 
 
 class TestPythonChunker:
