@@ -10,6 +10,7 @@ import click
 
 from recall.backends.qdrant import QdrantBackend
 from recall.chunking.factory import ChunkerFactory
+from recall.cli.migrate import migrate_embeddings
 from recall.config.loader import load_config
 from recall.core.store import SearchResult, UnifiedVectorStore
 from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
@@ -195,6 +196,10 @@ def setup_qdrant() -> None:
     click.echo("Or use docker-compose.yaml in this repository:")
     click.echo("  docker-compose up -d")
     sys.exit(1)
+
+
+# Add migration command to CLI group
+cli.add_command(migrate_embeddings, name="migrate")
 
 
 if __name__ == "__main__":
