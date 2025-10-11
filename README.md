@@ -1,4 +1,4 @@
-# Recall v1.3.2 - Semantic Vector Memory for Coding Agents
+# Recall v1.3.2 - Semantic Vector Memory "Recall" for Coding Agents
 
 [![Status](https://img.shields.io/badge/status-production--ready-brightgreen)](https://github.com/WKassebaum/Recall)
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/)
