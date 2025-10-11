@@ -1,0 +1,183 @@
+{
+  "application": {
+    "name": "MyApp",
+    "version": "1.2.3",
+    "environment": "production",
+    "debug": false
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "workers": 4,
+    "timeout": 30,
+    "max_connections": 1000
+  },
+  "database": {
+    "host": "db.example.com",
+    "port": 5432,
+    "name": "myapp_prod",
+    "user": "app_user",
+    "password": "${DB_PASSWORD}",
+    "pool": {
+      "min_size": 5,
+      "max_size": 20,
+      "timeout": 10
+    },
+    "ssl": {
+      "enabled": true,
+      "verify": true,
+      "ca_cert": "/etc/ssl/certs/ca-bundle.crt"
+    }
+  },
+  "redis": {
+    "host": "redis.example.com",
+    "port": 6379,
+    "password": "${REDIS_PASSWORD}",
+    "db": 0,
+    "max_connections": 50
+  },
+  "authentication": {
+    "jwt": {
+      "secret_key": "${JWT_SECRET}",
+      "algorithm": "HS256",
+      "expiration": 3600
+    },
+    "session": {
+      "cookie_name": "session_id",
+      "max_age": 86400,
+      "secure": true,
+      "http_only": true,
+      "same_site": "strict"
+    },
+    "oauth": {
+      "providers": {
+        "google": {
+          "client_id": "${GOOGLE_CLIENT_ID}",
+          "client_secret": "${GOOGLE_CLIENT_SECRET}",
+          "redirect_uri": "https://example.com/auth/google/callback"
+        },
+        "github": {
+          "client_id": "${GITHUB_CLIENT_ID}",
+          "client_secret": "${GITHUB_CLIENT_SECRET}",
+          "redirect_uri": "https://example.com/auth/github/callback"
+        }
+      }
+    }
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "outputs": [
+      {
+        "type": "console",
+        "format": "colored"
+      },
+      {
+        "type": "file",
+        "path": "/var/log/myapp/app.log",
+        "max_size": "100MB",
+        "max_backups": 10,
+        "compress": true
+      },
+      {
+        "type": "syslog",
+        "host": "logs.example.com",
+        "port": 514,
+        "protocol": "tcp"
+      }
+    ]
+  },
+  "monitoring": {
+    "metrics": {
+      "enabled": true,
+      "port": 9090,
+      "path": "/metrics"
+    },
+    "tracing": {
+      "enabled": true,
+      "exporter": "jaeger",
+      "endpoint": "http://jaeger.example.com:14268/api/traces",
+      "sample_rate": 0.1
+    },
+    "health_check": {
+      "enabled": true,
+      "path": "/health",
+      "interval": 30
+    }
+  },
+  "cache": {
+    "type": "redis",
+    "ttl": 3600,
+    "prefix": "myapp:",
+    "compression": {
+      "enabled": true,
+      "algorithm": "gzip",
+      "min_size": 1024
+    }
+  },
+  "api": {
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 60,
+      "burst": 10
+    },
+    "cors": {
+      "enabled": true,
+      "allowed_origins": [
+        "https://example.com",
+        "https://app.example.com"
+      ],
+      "allowed_methods": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "allowed_headers": ["Authorization", "Content-Type"],
+      "max_age": 86400
+    },
+    "versioning": {
+      "strategy": "header",
+      "header_name": "X-API-Version",
+      "default_version": "v1"
+    }
+  },
+  "storage": {
+    "type": "s3",
+    "bucket": "myapp-uploads",
+    "region": "us-east-1",
+    "credentials": {
+      "access_key_id": "${AWS_ACCESS_KEY_ID}",
+      "secret_access_key": "${AWS_SECRET_ACCESS_KEY}"
+    },
+    "endpoint": null,
+    "max_file_size": "50MB",
+    "allowed_types": [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "application/pdf"
+    ]
+  },
+  "email": {
+    "provider": "smtp",
+    "host": "smtp.example.com",
+    "port": 587,
+    "username": "${EMAIL_USERNAME}",
+    "password": "${EMAIL_PASSWORD}",
+    "from_address": "noreply@example.com",
+    "from_name": "MyApp",
+    "use_tls": true
+  },
+  "features": {
+    "registration": {
+      "enabled": true,
+      "require_email_verification": true,
+      "allowed_domains": ["example.com", "partner.com"]
+    },
+    "two_factor_auth": {
+      "enabled": true,
+      "enforce_for_admins": true
+    },
+    "file_uploads": {
+      "enabled": true,
+      "max_size": "10MB",
+      "allowed_extensions": ["jpg", "png", "pdf"]
+    }
+  }
+}

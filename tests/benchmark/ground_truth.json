@@ -1,0 +1,270 @@
+{
+  "queries": [
+    {
+      "id": "q1",
+      "query": "JWT token authentication",
+      "description": "Find code related to JWT token creation and verification",
+      "expected_files": [
+        "python/auth_example.py"
+      ],
+      "expected_content_matches": [
+        "create_token",
+        "verify_token",
+        "JWT",
+        "TokenManager"
+      ],
+      "min_relevance_score": 0.7
+    },
+    {
+      "id": "q2",
+      "query": "password hashing security",
+      "description": "Find code related to secure password hashing",
+      "expected_files": [
+        "python/auth_example.py"
+      ],
+      "expected_content_matches": [
+        "hash_password",
+        "verify_password",
+        "pbkdf2_hmac",
+        "PasswordHasher"
+      ],
+      "min_relevance_score": 0.7
+    },
+    {
+      "id": "q3",
+      "query": "database connection pooling",
+      "description": "Find code related to database connection management",
+      "expected_files": [
+        "python/database_example.py"
+      ],
+      "expected_content_matches": [
+        "DatabasePool",
+        "connection pool",
+        "get_connection",
+        "SimpleConnectionPool"
+      ],
+      "min_relevance_score": 0.7
+    },
+    {
+      "id": "q4",
+      "query": "SQL query execution with parameters",
+      "description": "Find code for parameterized SQL queries",
+      "expected_files": [
+        "python/database_example.py"
+      ],
+      "expected_content_matches": [
+        "execute_query",
+        "QueryExecutor",
+        "params",
+        "cursor.execute"
+      ],
+      "min_relevance_score": 0.7
+    },
+    {
+      "id": "q5",
+      "query": "database transaction management",
+      "description": "Find code related to database transactions",
+      "expected_files": [
+        "python/database_example.py"
+      ],
+      "expected_content_matches": [
+        "TransactionManager",
+        "transaction",
+        "commit",
+        "rollback"
+      ],
+      "min_relevance_score": 0.7
+    },
+    {
+      "id": "q6",
+      "query": "REST API authentication endpoints",
+      "description": "Find documentation about API authentication",
+      "expected_files": [
+        "markdown/api_documentation.md"
+      ],
+      "expected_content_matches": [
+        "POST /auth/login",
+        "access_token",
+        "Authorization",
+        "Bearer"
+      ],
+      "min_relevance_score": 0.65
+    },
+    {
+      "id": "q7",
+      "query": "user management CRUD operations",
+      "description": "Find API documentation for user operations",
+      "expected_files": [
+        "markdown/api_documentation.md"
+      ],
+      "expected_content_matches": [
+        "POST /users",
+        "GET /users",
+        "PATCH /users",
+        "DELETE /users"
+      ],
+      "min_relevance_score": 0.65
+    },
+    {
+      "id": "q8",
+      "query": "API rate limiting configuration",
+      "description": "Find information about rate limits",
+      "expected_files": [
+        "markdown/api_documentation.md"
+      ],
+      "expected_content_matches": [
+        "rate-limited",
+        "1000 requests per hour",
+        "X-RateLimit",
+        "429"
+      ],
+      "min_relevance_score": 0.65
+    },
+    {
+      "id": "q9",
+      "query": "webhook event subscription",
+      "description": "Find documentation about webhook setup",
+      "expected_files": [
+        "markdown/api_documentation.md"
+      ],
+      "expected_content_matches": [
+        "POST /webhooks",
+        "webhook",
+        "events",
+        "X-Webhook-Signature"
+      ],
+      "min_relevance_score": 0.65
+    },
+    {
+      "id": "q10",
+      "query": "database connection configuration",
+      "description": "Find database configuration settings",
+      "expected_files": [
+        "json/config_example.json"
+      ],
+      "expected_content_matches": [
+        "database",
+        "pool",
+        "min_size",
+        "max_size"
+      ],
+      "min_relevance_score": 0.6
+    },
+    {
+      "id": "q11",
+      "query": "Redis cache settings",
+      "description": "Find Redis configuration",
+      "expected_files": [
+        "json/config_example.json"
+      ],
+      "expected_content_matches": [
+        "redis",
+        "cache",
+        "ttl",
+        "compression"
+      ],
+      "min_relevance_score": 0.6
+    },
+    {
+      "id": "q12",
+      "query": "OAuth provider configuration",
+      "description": "Find OAuth setup for Google and GitHub",
+      "expected_files": [
+        "json/config_example.json"
+      ],
+      "expected_content_matches": [
+        "oauth",
+        "providers",
+        "google",
+        "github",
+        "client_id"
+      ],
+      "min_relevance_score": 0.6
+    },
+    {
+      "id": "q13",
+      "query": "logging and monitoring setup",
+      "description": "Find logging configuration",
+      "expected_files": [
+        "json/config_example.json"
+      ],
+      "expected_content_matches": [
+        "logging",
+        "monitoring",
+        "metrics",
+        "tracing"
+      ],
+      "min_relevance_score": 0.6
+    },
+    {
+      "id": "q14",
+      "query": "CORS and API versioning",
+      "description": "Find CORS and versioning config",
+      "expected_files": [
+        "json/config_example.json"
+      ],
+      "expected_content_matches": [
+        "cors",
+        "allowed_origins",
+        "versioning",
+        "X-API-Version"
+      ],
+      "min_relevance_score": 0.6
+    },
+    {
+      "id": "q15",
+      "query": "role-based access control",
+      "description": "Find role hierarchy and permission checking",
+      "expected_files": [
+        "python/auth_example.py"
+      ],
+      "expected_content_matches": [
+        "RoleChecker",
+        "has_permission",
+        "ROLE_HIERARCHY",
+        "admin"
+      ],
+      "min_relevance_score": 0.7
+    }
+  ],
+  "accuracy_targets": {
+    "snowflake/arctic-embed-m": {
+      "target_accuracy": 0.87,
+      "min_accuracy": 0.85,
+      "description": "Primary model - highest accuracy"
+    },
+    "nomic-embed-text-v1.5": {
+      "target_accuracy": 0.862,
+      "min_accuracy": 0.80,
+      "description": "Long context model"
+    },
+    "bge-small-en-v1.5": {
+      "target_accuracy": 0.847,
+      "min_accuracy": 0.75,
+      "description": "Balanced model"
+    },
+    "all-MiniLM-L6-v2": {
+      "target_accuracy": 0.781,
+      "min_accuracy": 0.70,
+      "description": "Fallback model - fastest"
+    }
+  },
+  "scoring": {
+    "exact_match": {
+      "points": 1.0,
+      "description": "Query returns expected file with high score"
+    },
+    "partial_match": {
+      "points": 0.5,
+      "description": "Query returns expected file but lower score"
+    },
+    "content_match": {
+      "points": 0.75,
+      "description": "Retrieved content contains expected keywords"
+    },
+    "no_match": {
+      "points": 0.0,
+      "description": "Expected file not in results"
+    }
+  }
+}

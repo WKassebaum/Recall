@@ -17,7 +17,7 @@ repos:
 
       - id: test-coverage
         name: Test Coverage Check (≥ 80%)
-        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/pytest --cov=src/recall --cov-fail-under=80 -q'
+        entry: bash -c 'cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem && ./venv/bin/pytest --cov=src/recall --cov-fail-under=80 -q -m "not slow and not benchmark"'
         language: system
         pass_filenames: false
         always_run: true
