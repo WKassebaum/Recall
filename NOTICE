@@ -1,0 +1,85 @@
+Recall - Semantic Vector Memory for Coding Agents
+Copyright 2025 William Kassebaum
+
+This product includes software developed by William Kassebaum and contributors.
+
+================================================================================
+
+This project incorporates patterns, ideas, and architectural approaches from
+the following open source projects:
+
+CodeIndex
+Copyright (c) 2024 William Kassebaum
+Licensed under the MIT License
+https://github.com/WKassebaum/codeindex
+- AST-aware chunking patterns using TreeSitter
+- Multi-language code parsing strategies
+- MCP server architecture patterns
+
+================================================================================
+
+Third-Party Dependencies:
+
+This product depends on the following third-party libraries and frameworks,
+each with their own license terms:
+
+Qdrant Vector Database
+Copyright (c) 2020-2024 Qdrant
+Licensed under the Apache License 2.0
+https://github.com/qdrant/qdrant
+- Vector similarity search engine
+- HNSW indexing implementation
+
+FastMCP
+Copyright (c) 2024 Anthropic
+Licensed under the MIT License
+https://github.com/modelcontextprotocol/fastmcp
+- Model Context Protocol server framework
+
+sentence-transformers
+Copyright (c) 2019 Nils Reimers, Ubiquitous Knowledge Processing Lab
+Licensed under the Apache License 2.0
+https://github.com/UKPLab/sentence-transformers
+- Embedding model framework
+
+Tree-sitter
+Copyright (c) 2018-2024 Max Brunsfeld
+Licensed under the MIT License
+https://github.com/tree-sitter/tree-sitter
+- Parser generator and incremental parsing library
+
+================================================================================
+
+Embedding Models:
+
+This software can utilize the following pre-trained embedding models:
+
+snowflake-arctic-embed-m
+Copyright (c) 2024 Snowflake Inc.
+Licensed under the Apache License 2.0
+https://huggingface.co/Snowflake/snowflake-arctic-embed-m
+
+all-MiniLM-L6-v2
+Copyright (c) 2019 Nils Reimers
+Licensed under the Apache License 2.0
+https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+
+nomic-embed-text-v1.5
+Copyright (c) 2024 Nomic AI
+Licensed under the Apache License 2.0
+https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
+
+bge-small-en-v1.5
+Copyright (c) 2023 Beijing Academy of Artificial Intelligence (BAAI)
+Licensed under the MIT License
+https://huggingface.co/BAAI/bge-small-en-v1.5
+
+================================================================================
+
+Acknowledgments:
+
+This project was developed with assistance from Claude (Anthropic) via
+Claude Code CLI for planning, implementation, and quality assurance.
+
+Special thanks to the open source community for creating the foundational
+tools and libraries that made this project possible.
