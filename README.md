@@ -1,4 +1,4 @@
-# Recall v1.3.2 - Semantic Vector Memory "Recall" for Coding Agents
+# Recall v1.3.3 - Semantic Vector Memory for Coding Agents
 
 [![Status](https://img.shields.io/badge/status-production--ready-brightgreen)](https://github.com/WKassebaum/Recall)
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/)
@@ -35,7 +35,43 @@ Recall is a long-term semantic memory system that addresses context window limit
 - Docker Desktop (for Qdrant vector database)
 - Claude Code CLI or compatible MCP client
 
-### Installation
+### Installation via Plugin (Recommended) ⭐
+
+**Easiest way to get started** - one command installs everything:
+
+```bash
+# Add Recall marketplace
+claude mcp add-marketplace https://github.com/WKassebaum/Recall
+
+# Install Recall plugin
+/plugin marketplace add WKassebaum/Recall
+
+# Or install directly from repository
+/plugin install https://github.com/WKassebaum/Recall
+```
+
+**What you get:**
+- ✅ Automatic MCP server configuration
+- ✅ Helpful slash commands: `/recall-store`, `/recall-search`, `/recall-timeline`, `/recall-stats`, `/recall-setup`
+- ✅ One-command installation
+- ✅ Auto-updates
+
+**Setup requirements:**
+```bash
+# 1. Start Qdrant (vector database)
+docker run -d -p 6333:6333 qdrant/qdrant
+
+# 2. Run setup to verify installation
+/recall-setup
+```
+
+**First Launch Note:** On first use, sentence-transformers will automatically download the Arctic embedding model (~3.5GB) from HuggingFace to `~/.cache/huggingface/`. This takes 30-60 seconds on a good connection. Subsequent launches are instant.
+
+---
+
+### Manual Installation (Alternative)
+
+If you prefer manual setup or want to contribute:
 
 ```bash
 # Clone repository
@@ -53,7 +89,14 @@ pip install -r requirements.txt
 docker run -d -p 6333:6333 qdrant/qdrant
 ```
 
-### MCP Server Setup
+**First Launch Note:** On first use, sentence-transformers will automatically download the Arctic embedding model (~3.5GB) from HuggingFace to `~/.cache/huggingface/`. This takes 30-60 seconds on a good connection. Subsequent launches are instant.
+
+**Optional - Pre-download model to avoid delays:**
+```bash
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('Snowflake/snowflake-arctic-embed-m')"
+```
+
+### MCP Server Setup (Manual)
 
 Add Recall to your Claude Code configuration:
 
@@ -390,4 +433,4 @@ Apache 2.0
 
 ---
 
-**Version:** v1.3.2 | **Status:** Production-ready | **Last Updated:** 2025-10-11
+**Version:** v1.3.3 | **Status:** Production-ready | **Last Updated:** 2025-10-11

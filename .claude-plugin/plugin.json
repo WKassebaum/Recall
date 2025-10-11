@@ -1,0 +1,27 @@
+{
+  "name": "recall",
+  "version": "1.3.3",
+  "description": "Semantic vector memory for AI coding assistants - dual-mode retrieval (semantic + episodic)",
+  "author": {
+    "name": "William Kassebaum",
+    "email": "wkassebaum@gmail.com",
+    "url": "https://github.com/WKassebaum"
+  },
+  "homepage": "https://github.com/WKassebaum/Recall",
+  "repository": "https://github.com/WKassebaum/Recall",
+  "license": "Apache-2.0",
+  "keywords": [
+    "memory",
+    "vector-database",
+    "embeddings",
+    "mcp",
+    "semantic-search",
+    "episodic-memory",
+    "coding-assistant",
+    "context-management",
+    "qdrant",
+    "sentence-transformers"
+  ],
+  "commands": "./commands/",
+  "mcpServers": "./.mcp.json"
+}

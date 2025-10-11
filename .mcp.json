@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "recall": {
+      "command": "python",
+      "args": [
+        "-m",
+        "recall.mcp.server"
+      ],
+      "env": {
+        "PYTHONPATH": "${CLAUDE_PLUGIN_ROOT}/src",
+        "RECALL_CONFIG": "${CLAUDE_PLUGIN_ROOT}/config.yaml"
+      }
+    }
+  }
+}
