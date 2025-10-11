@@ -4,6 +4,9 @@ Waypoints 10-11: MCP Server Integration Tests.
 Tests MCP server tools with real components (embedder, chunker, Qdrant).
 """
 
+import os
+from pathlib import Path
+
 import pytest
 
 from recall.backends.qdrant import QdrantBackend
@@ -14,15 +17,33 @@ class TestMCPServerIntegration:
     """Waypoints 10-11 tests - MCP server integration validation."""
 
     @pytest.fixture
-    def cleanup_collections(self) -> None:
-        """Clean up test collections after each test."""
+    def isolated_qdrant(self, tmp_path: Path) -> Path:
+        """Provide isolated Qdrant path for each test to avoid file locking conflicts."""
+        # Use unique temp directory for each test
+        test_qdrant_path = tmp_path / "qdrant"
+        test_qdrant_path.mkdir(exist_ok=True)
+
+        # Set environment variable to override default path
+        original_path = os.environ.get("RECALL_QDRANT_PATH")
+        os.environ["RECALL_QDRANT_PATH"] = str(test_qdrant_path)
+
+        yield test_qdrant_path
+
+        # Restore original environment
+        if original_path:
+            os.environ["RECALL_QDRANT_PATH"] = original_path
+        else:
+            os.environ.pop("RECALL_QDRANT_PATH", None)
+
+    @pytest.fixture
+    def cleanup_collections(self, isolated_qdrant: Path) -> None:
+        """Clean up test collections after each test.
+
+        Note: Cleanup is not needed since each test uses an isolated temp directory
+        that is automatically cleaned up by pytest's tmp_path fixture.
+        """
         yield
-        # Cleanup - use embedded mode
-        backend = QdrantBackend(path="~/.recall/qdrant")
-        try:
-            backend.delete_collection("recall_768d")
-        except Exception:
-            pass
+        # No cleanup needed - tmp_path handles directory removal automatically
 
     @pytest.mark.asyncio
     async def test_ingest_memory_tool(self, cleanup_collections: None) -> None:

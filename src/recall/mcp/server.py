@@ -78,7 +78,9 @@ def get_components() -> (
         _embedder = SentenceTransformerEmbedder(_config.embedder_model)
 
         # Initialize Qdrant backend (embedded mode with local storage)
-        backend = QdrantBackend(path="~/.recall/qdrant")
+        # Support RECALL_QDRANT_PATH for test isolation
+        qdrant_path = os.environ.get("RECALL_QDRANT_PATH", "~/.recall/qdrant")
+        backend = QdrantBackend(path=qdrant_path)
 
         # Initialize unified store
         _store = UnifiedVectorStore(backend=backend)

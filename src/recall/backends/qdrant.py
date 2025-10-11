@@ -44,6 +44,10 @@ class QdrantBackend:
             host: Qdrant host (for network mode)
             port: Qdrant port (for network mode)
             path: Local storage path (for embedded mode)
+
+        Raises:
+            BlockingIOError: If embedded database is already in use by another process
+            ValueError: If neither path nor host is provided
         """
         self.mode: str
         self.path: str | None
@@ -55,11 +59,20 @@ class QdrantBackend:
             import os
 
             expanded_path = os.path.expanduser(path)
-            self.client = QdrantClient(path=expanded_path)
-            self.mode = "embedded"
-            self.path = expanded_path
-            self.host = None
-            self.port = None
+            try:
+                self.client = QdrantClient(path=expanded_path)
+                self.mode = "embedded"
+                self.path = expanded_path
+                self.host = None
+                self.port = None
+            except BlockingIOError as e:
+                raise BlockingIOError(
+                    f"Qdrant database at '{expanded_path}' is already in use by another process. "
+                    "This can happen when:\n"
+                    "  - Multiple Claude Code windows are open\n"
+                    "  - Another instance of Recall is running\n"
+                    "Solution: Close other instances or use a different storage path via RECALL_QDRANT_PATH"
+                ) from e
         elif host:
             # Network mode (Docker or remote)
             self.client = QdrantClient(host=host, port=port)
