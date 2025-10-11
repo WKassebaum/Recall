@@ -1,5 +1,9 @@
 """Recall MCP Server - Semantic vector memory for coding agents."""
 
+import logging
+import os
+import sys
+import warnings
 from datetime import datetime, timezone
 from typing import Annotated
 
@@ -11,6 +15,21 @@ from recall.chunking.factory import ChunkerFactory
 from recall.config.loader import Config, load_config
 from recall.core.store import UnifiedVectorStore
 from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
+
+# Suppress all logging to stdout (MCP protocol requires clean stdout)
+# Redirect to stderr or disable entirely
+logging.basicConfig(
+    level=logging.ERROR,  # Only errors
+    stream=sys.stderr,  # Send to stderr, not stdout
+    format="%(message)s",
+)
+
+# Suppress sentence-transformers warnings
+warnings.filterwarnings("ignore")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# Suppress httpx logging
+logging.getLogger("httpx").setLevel(logging.ERROR)
 
 # Initialize FastMCP server
 mcp = FastMCP("recall")
