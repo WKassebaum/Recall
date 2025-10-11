@@ -393,19 +393,78 @@ mypy src/recall --strict
 
 ## 🗺️ Roadmap
 
-### v1.4.0 (Planned)
-- Automatic summarization of old memories
-- Smart mode selection based on query patterns
-- Memory clustering by topic
-- Context size monitoring with offload alerts
-- Performance profiling dashboard
+### v1.4.0 (Next Release)
+**Focus: Context Management & User Experience**
+
+1. **Context Size Monitoring & Alerts** ⭐ *Highest Priority*
+   - Real-time context window usage tracking
+   - Smart alerts when context reaches 70%+ capacity
+   - Automatic suggestions for memories to offload
+   - Integration with Claude Code status bar
+
+2. **Smart Mode Selection**
+   - Automatic mode detection (semantic vs chronological vs hybrid)
+   - Query pattern analysis for optimal retrieval
+   - User preference learning
+
+3. **Memory Importance Scoring**
+   - Automatic importance calculation based on access patterns
+   - User-adjustable importance ratings
+   - Priority-based retrieval ranking
+   - Intelligent memory pruning suggestions
+
+4. **Cross-Project Memory Sharing**
+   - Share memories across multiple projects
+   - Global vs project-scoped memory management
+   - Shared decision/preference memory pools
+
+5. **Memory Export/Import**
+   - JSON/YAML export formats
+   - Backup and restore functionality
+   - Team knowledge sharing capabilities
+   - Migration between instances
 
 ### v1.5.0 (Future)
-- Multi-user support
-- Distributed Qdrant setup
-- Advanced query DSL
-- Memory importance scoring
-- Cross-project memory sharing
+**Focus: Automation & Intelligence**
+
+1. **Auto-Ingestion Hooks**
+   - Automatic memory capture at key events
+   - Git commit integration (capture commit context)
+   - Test failure auto-logging
+   - Configurable trigger patterns
+
+2. **Smart Suggestions**
+   - Proactive memory recommendations during coding
+   - "You worked on similar code last week" notifications
+   - Related decision surfacing
+   - Pattern-based insight generation
+
+3. **Natural Language Queries**
+   - Conversational query interface
+   - Query intent understanding
+   - Multi-step query refinement
+
+4. **Performance Dashboard**
+   - Real-time system metrics visualization
+   - Query latency trends
+   - Storage usage analytics
+   - Retrieval accuracy reporting
+
+5. **Session Recap** (formerly "Summarization")
+   - Conversational timeline queries: "What did we do last week?"
+   - Decision history: "When did we move to version x?"
+   - Rationale retrieval: "Why did we switch to Apache 2.0?"
+   - Intelligent event grouping and presentation
+   - No data compression - full context preserved
+
+### v2.0+ (Long-term Vision)
+**Focus: Enterprise & Scale**
+
+- Multi-user support with permissions
+- Distributed Qdrant deployment
+- Advanced query DSL for power users
+- Memory analytics and insights
+- API for third-party integrations
 
 ---
 
