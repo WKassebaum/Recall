@@ -138,6 +138,46 @@ class QdrantBackend:
 
         return chunks
 
+    def get_all_chunks(self, collection_name: str, limit: int = 100) -> list[Chunk]:
+        """
+        Get all chunks from collection (for chronological queries).
+
+        Args:
+            collection_name: Collection name
+            limit: Maximum number of chunks to retrieve
+
+        Returns:
+            List of chunks with embeddings
+        """
+        # Use scroll to get points without vector search
+        points, _ = self.client.scroll(
+            collection_name=collection_name, limit=limit, with_vectors=True
+        )
+
+        chunks = []
+        for point in points:
+            # Extract chunk data from point
+            chunk_id = point.payload.get("original_id", str(point.id))  # type: ignore[union-attr]
+            metadata = point.payload.get("metadata", {})  # type: ignore[union-attr]
+
+            # Convert vector to numpy array
+            if point.vector is None:
+                raise ValueError(
+                    "Qdrant did not return vectors in scroll results. "
+                    "Ensure with_vectors=True is set."
+                )
+            embedding = np.array(point.vector, dtype=np.float32).reshape(-1)
+
+            chunk = Chunk(
+                content=point.payload["content"],  # type: ignore[index]
+                embedding=embedding,
+                chunk_id=chunk_id,
+                metadata=metadata,
+            )
+            chunks.append(chunk)
+
+        return chunks
+
     def count(self, collection_name: str) -> int:
         """
         Get count of chunks in collection.

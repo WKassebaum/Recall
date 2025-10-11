@@ -235,11 +235,376 @@ Selection via `config.yaml` with zero code changes for switching
 - NLTK sentence splitter fallback for prose
 - Preserves semantic structure of code (functions, classes)
 
-### MCP Interface (Planned Tools)
-- `ingest_memory` - Store code/text chunks with metadata
-- `recall_memory` - Semantic search with configurable top_k
-- `prune_memory` - Clean low-usage vectors
-- FastMCP framework (mirrors CodeIndex implementation patterns)
+### MCP Interface - Recall Memory System ✅ IMPLEMENTED (v1.3.2)
+
+**Available Tools:**
+- `ingest_memory` - Store code/text/decisions with event metadata
+- `recall_memory` - Dual-mode retrieval (semantic + chronological)
+- `memory_stats` - System statistics and health
+
+**Key Features:**
+- **Dual-mode retrieval**: Semantic similarity OR chronological timeline
+- **Event-based structure**: decision, discovery, milestone, preference, error, success
+- **Session-based organization**: Group related memories by session_id
+- **Temporal filtering**: Query by time range, event type
+- **External working memory**: Offload context to reduce token usage
+
+---
+
+## Recall MCP - External Working Memory (v1.3.2)
+
+### Memory Architecture Overview
+
+Recall implements a **hybrid semantic + episodic memory system** that enables:
+
+1. **Semantic Retrieval**: "What decisions about embedders?" → Vector similarity search
+2. **Temporal Retrieval**: "Show Phase 3 timeline" → Chronological ordering
+3. **Hybrid Queries**: "Recent debugging attempts" → Semantic + temporal filtering
+
+This dual-mode design addresses the **context window problem** by storing important events/decisions externally and retrieving them on-demand.
+
+---
+
+### When to Use Recall vs Other Memory Types
+
+#### 1. Working Memory (Session-Scoped)
+- **Storage**: In-memory variables, context window
+- **Duration**: Current conversation only
+- **Use for**: Active reasoning, temporary calculations
+- **Implementation**: Python variables, conversation context
+
+#### 2. Procedural Memory (How-To Knowledge)
+- **Storage**: Markdown files (.md)
+- **Duration**: Persistent, version-controlled
+- **Use for**: Workflows, coding patterns, conventions
+- **Implementation**: `docs/*.md`, `CONVENTIONS.md`
+
+#### 3. Recall - Semantic + Episodic Memory ⭐
+- **Storage**: Vector database + timestamped metadata
+- **Duration**: Persistent, queryable by meaning OR time
+- **Use for**:
+  - **Semantic**: User preferences, learned patterns, domain knowledge
+  - **Episodic**: Decision history, debugging trails, "what we tried"
+- **Implementation**: `mcp__recall__ingest_memory` + `mcp__recall__recall_memory`
+
+**Recall handles BOTH:**
+- **Semantic queries**: "What code handles authentication?" (similarity search)
+- **Temporal queries**: "What happened on October 10th?" (chronological)
+
+---
+
+### Auto-Trigger Patterns - When to Use Recall Proactively
+
+**CRITICAL: Use Recall frequently to extend working memory and prevent context loss.**
+
+#### Store Memories Immediately After:
+
+**Decisions** (event_type: "decision"):
+```python
+# Example: After choosing architecture
+mcp__recall__ingest_memory(
+    content="Selected Arctic embedder for 93.3% benchmark accuracy vs MiniLM 86.7%",
+    session_id="phase3_architecture",
+    metadata={
+        "event_type": "decision",
+        "tags": "architecture,embeddings,performance",
+        "context": "Comparing 4 embedding models on accuracy benchmark",
+        "outcome": "Arctic selected as primary, MiniLM as fallback"
+    }
+)
+```
+
+**Discoveries** (event_type: "discovery"):
+```python
+# Example: After finding a bug
+mcp__recall__ingest_memory(
+    content="MCP stdout contamination caused tool registration failure. sentence-transformers and httpx were logging to stdout, corrupting JSON-RPC protocol.",
+    session_id="phase3_mcp_integration",
+    metadata={
+        "event_type": "discovery",
+        "tags": "debugging,mcp,protocol",
+        "context": "Server showed connected but tools unavailable in Claude Code",
+        "outcome": "Suppressed all logging to stderr for protocol compliance"
+    }
+)
+```
+
+**Milestones** (event_type: "milestone"):
+```python
+# Example: After completing a waypoint
+mcp__recall__ingest_memory(
+    content="Waypoint 17 complete: Performance profiling validated 17.5ms queries (28x faster than 500ms target), memory <8GB, throughput 32.4 chunks/sec",
+    session_id="phase3_completion",
+    metadata={
+        "event_type": "milestone",
+        "tags": "waypoint,performance,validation",
+        "context": "Final waypoint before Phase 3 sign-off"
+    }
+)
+```
+
+**Errors & Solutions** (event_type: "error" or "success"):
+```python
+# Example: After solving a tricky bug
+mcp__recall__ingest_memory(
+    content="Fixed config path resolution for MCP server. Used pathlib.Path(__file__).parent.parent.parent.parent to resolve config.yaml absolute path, eliminating dependency on cwd parameter.",
+    session_id="phase3_mcp_integration",
+    metadata={
+        "event_type": "success",
+        "tags": "fix,mcp,configuration",
+        "context": "Server couldn't find config.yaml when run from different directories",
+        "outcome": "Works from any directory without relying on cwd"
+    }
+)
+```
+
+---
+
+### Retrieval Modes - Dual Access Patterns
+
+#### Mode 1: Semantic Search (Default)
+**Use when**: Searching by meaning/relevance
+
+```python
+# Find relevant context for current work
+mcp__recall__recall_memory(
+    query="embedding model decisions",
+    session_id="phase3_architecture",  # Optional: filter by session
+    top_k=5,
+    min_score=0.5  # Similarity threshold
+)
+# Returns: Most semantically similar chunks, ranked by score
+```
+
+#### Mode 2: Chronological Timeline
+**Use when**: Need temporal sequence of events
+
+```python
+# Show Phase 3 timeline
+mcp__recall__recall_memory(
+    retrieval_mode="chronological",
+    session_id="phase3",
+    time_range="2025-10-08,2025-10-11",  # Date range
+    top_k=20
+)
+# Returns: Events in time order (oldest to newest)
+```
+
+#### Mode 3: Hybrid (Semantic + Temporal)
+**Use when**: Recent relevant events
+
+```python
+# Recent debugging attempts
+mcp__recall__recall_memory(
+    query="debugging MCP integration",
+    retrieval_mode="hybrid",
+    time_range="2025-10-10,",  # Since Oct 10 (open-ended)
+    event_types="discovery,error,success",
+    top_k=10
+)
+# Returns: Semantically relevant events from time range
+```
+
+---
+
+### Workflow Integration Patterns
+
+#### Pattern 1: Offload to Recall (Reduce Context)
+```
+1. Working on complex task → Context fills up
+2. Reach good stopping point → ingest_memory() with findings
+3. Clear detailed explanation from context
+4. Continue working with lighter context
+5. Later need those details → recall_memory() pulls them back
+```
+
+**Example:**
+```python
+# After completing complex debugging
+mcp__recall__ingest_memory(
+    content="[Detailed findings about MCP server logging issue...]",
+    session_id="mcp_debugging",
+    metadata={"event_type": "discovery", "tags": "mcp,logging"}
+)
+
+# Later in session when context is lighter
+mcp__recall__recall_memory(
+    query="MCP logging issue details",
+    session_id="mcp_debugging"
+)
+```
+
+#### Pattern 2: Session Continuity
+```
+1. Session ends with task incomplete
+2. Next session starts → recall_memory(session_id="previous_task")
+3. Continue from where left off
+4. No need to re-explain everything
+```
+
+#### Pattern 3: Proactive Storage During Development
+```
+1. Make important decision → ingest immediately
+2. Find bug root cause → ingest with discovery event
+3. Complete milestone → ingest with milestone event
+4. Context getting full → Store current state, continue fresh
+```
+
+---
+
+### Event Metadata Structure Best Practices
+
+**Required Fields (Auto-Added):**
+- `session_id`: Organizational grouping
+- `ingested_at`: ISO timestamp (UTC)
+
+**Recommended Custom Fields:**
+```python
+metadata = {
+    "event_type": "decision|discovery|milestone|preference|error|success",
+    "tags": "topic1,topic2,topic3",  # Comma-separated for filtering
+    "context": "Why this memory was created",
+    "outcome": "What happened or was decided"
+}
+```
+
+**Event Types:**
+- `decision`: Architecture, tool selection, approach changes
+- `discovery`: Findings, insights, "what we learned"
+- `milestone`: Waypoint completion, phase transitions
+- `preference`: User preferences, coding style learned
+- `error`: Problems encountered, failure modes
+- `success`: Solutions that worked, validated approaches
+
+---
+
+### Advanced Usage Examples
+
+#### Example 1: Track Decision Rationale
+```python
+# Store the "why" behind decisions
+mcp__recall__ingest_memory(
+    content="Chose 2-tier fallback (Arctic → MiniLM) over 4-tier because Nomic (4.8GB) is larger than Arctic (3.5GB), making it illogical as a fallback. Simpler is better.",
+    session_id="phase1_architecture",
+    metadata={
+        "event_type": "decision",
+        "tags": "architecture,fallback,simplicity",
+        "context": "Designing embedder fallback strategy",
+        "outcome": "2-tier fallback validated by Zen MCP (9/10 confidence)"
+    }
+)
+
+# Later retrieve the reasoning
+mcp__recall__recall_memory(
+    query="why 2-tier fallback instead of 4-tier",
+    session_id="phase1_architecture"
+)
+```
+
+#### Example 2: Debugging Timeline Reconstruction
+```python
+# Store each debugging step
+# Step 1
+mcp__recall__ingest_memory(
+    content="MCP server shows connected but tools not available",
+    session_id="mcp_debug_timeline",
+    metadata={"event_type": "error", "tags": "mcp,tools"}
+)
+
+# Step 2
+mcp__recall__ingest_memory(
+    content="Found stdout contamination from sentence-transformers logging",
+    session_id="mcp_debug_timeline",
+    metadata={"event_type": "discovery", "tags": "mcp,logging"}
+)
+
+# Step 3
+mcp__recall__ingest_memory(
+    content="Fixed by redirecting all logging to stderr",
+    session_id="mcp_debug_timeline",
+    metadata={"event_type": "success", "tags": "mcp,fix"}
+)
+
+# Retrieve chronological timeline
+mcp__recall__recall_memory(
+    retrieval_mode="chronological",
+    session_id="mcp_debug_timeline",
+    event_types="error,discovery,success"
+)
+```
+
+#### Example 3: Performance Optimization History
+```python
+# Track what optimizations worked
+mcp__recall__ingest_memory(
+    content="Semantic search achieves 17.5ms query latency (28x faster than 500ms target) by using Arctic embedder with MPS acceleration on M1 Max",
+    session_id="performance_wins",
+    metadata={
+        "event_type": "success",
+        "tags": "performance,optimization,embeddings",
+        "metrics": "17.5ms_query,28x_speedup"
+    }
+)
+
+# Find similar optimization opportunities
+mcp__recall__recall_memory(
+    query="performance optimization techniques that worked",
+    session_id="performance_wins"
+)
+```
+
+---
+
+### Context Management Strategy
+
+**Recall as External Working Memory:**
+
+Traditional Claude Session:
+```
+Context Window: 200k tokens
+├─ Active reasoning: 30k
+├─ Code being worked on: 50k
+├─ MCP tools: 60k
+├─ Instructions: 15k
+└─ Everything else: 45k ← COMPACTED/LOST when full
+```
+
+Recall-Enhanced Session:
+```
+Context Window: 200k tokens
+├─ Active reasoning: 30k
+├─ Code being worked on: 50k
+├─ MCP tools: 60k
+├─ Instructions: 15k
+└─ LIGHT (45k freed) ← Offloaded to Recall, retrievable on-demand
+```
+
+**Benefits:**
+- ✅ Prevent premature context compaction
+- ✅ Preserve detailed decision rationale
+- ✅ Enable session continuity across restarts
+- ✅ Build persistent knowledge base over time
+
+---
+
+### Performance Considerations
+
+**Query Performance:**
+- Semantic search: ~17.5ms average (validated)
+- Chronological search: ~20-30ms (no embedding needed)
+- Hybrid search: ~25-40ms (embedding + filtering)
+
+**When NOT to Use Recall:**
+- Temporary calculations (use variables)
+- Data that changes frequently (use working memory)
+- Highly structured queries (use SQLite/JSON)
+
+**Best Practices:**
+- Store important events immediately (don't batch)
+- Use descriptive session_ids for easy filtering
+- Tag liberally for better discoverability
+- Prefer semantic search for "what" questions
+- Prefer chronological for "when" questions
 
 ## Development Phase Commands
 

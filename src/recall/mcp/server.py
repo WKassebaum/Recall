@@ -87,20 +87,37 @@ async def ingest_memory(
         Field(description='Optional content type hint ("python", "markdown", "json", "prose")'),
     ] = None,
     metadata: Annotated[
-        dict[str, str] | None, Field(description="Optional additional metadata")
+        dict[str, str] | None,
+        Field(
+            description='Optional metadata. RECOMMENDED: {"event_type": "decision|discovery|milestone|preference|error|success", "tags": "topic1,topic2", "context": "why created", "outcome": "what happened"}'
+        ),
     ] = None,
 ) -> str:
     """
-    Ingest content into semantic vector memory.
+    Ingest content into semantic vector memory with optional event metadata.
 
-    Automatically chunks content based on type, generates embeddings,
-    and stores in vector database with metadata for session-based filtering.
+    Automatically chunks content, generates embeddings, and stores with metadata
+    for both semantic and temporal retrieval.
+
+    RECOMMENDED METADATA STRUCTURE:
+      event_type: "decision" | "discovery" | "milestone" | "preference" | "error" | "success"
+      tags: "topic1,topic2,topic3"
+      context: "Why this memory was created"
+      outcome: "What happened or was decided"
+
+    EXAMPLE - Decision Event:
+      metadata = {
+        "event_type": "decision",
+        "tags": "architecture,embeddings",
+        "context": "Comparing 4 embedding models",
+        "outcome": "Selected Arctic for 93.3% accuracy"
+      }
 
     Args:
         content: Content to store (code, text, JSON, markdown)
         session_id: Session ID for organizing and filtering memories
         content_type: Optional type hint (auto-detected if not provided)
-        metadata: Optional metadata (tags, timestamps, etc.)
+        metadata: Optional metadata (event_type, tags, context, outcome, etc.)
 
     Returns:
         Success message with ingestion statistics
@@ -124,8 +141,10 @@ async def ingest_memory(
         ingested_ids.append(chunk_id)
 
     # Return success message
+    event_type = meta.get("event_type", "memory")
     return (
         f"✅ Ingested {len(chunks)} chunks from session '{session_id}'\n"
+        f"Event type: {event_type}\n"
         f"Content type: {content_type or 'auto-detected'}\n"
         f"Total characters: {len(content)}\n"
         f"Average chunk size: {len(content) // len(chunks) if chunks else 0} chars"
@@ -134,7 +153,12 @@ async def ingest_memory(
 
 @mcp.tool()
 async def recall_memory(
-    query: Annotated[str, Field(description="Semantic search query")],
+    query: Annotated[
+        str | None,
+        Field(
+            description="Semantic search query (required for semantic/hybrid, optional for chronological)"
+        ),
+    ] = None,
     top_k: Annotated[int, Field(description="Maximum number of results to return")] = 10,
     session_id: Annotated[
         str | None, Field(description="Optional session ID to filter results")
@@ -142,18 +166,67 @@ async def recall_memory(
     min_score: Annotated[
         float, Field(description="Minimum similarity score threshold (0-1)")
     ] = 0.0,
+    retrieval_mode: Annotated[
+        str,
+        Field(description='Retrieval mode: "semantic" (default), "chronological", or "hybrid"'),
+    ] = "semantic",
+    time_range: Annotated[
+        str | None,
+        Field(
+            description='Time range filter: "2025-10-01,2025-10-11" or "2025-10-10," (open-ended)'
+        ),
+    ] = None,
+    event_types: Annotated[
+        str | None,
+        Field(description='Event type filter: "decision,milestone" (comma-separated)'),
+    ] = None,
+    sort_by: Annotated[str, Field(description='Sort order: "score" (default) or "time"')] = "score",
 ) -> str:
     """
-    Search semantic vector memory for relevant content.
+    Search memory using semantic similarity OR temporal queries.
 
-    Uses cosine similarity to find semantically similar chunks,
-    with optional session-based filtering.
+    SEMANTIC MODE (default):
+      - Search by meaning: "What decisions about embedders?"
+      - Returns results ranked by similarity score
+      - Requires query parameter
+
+    CHRONOLOGICAL MODE:
+      - Search by time: Show Phase 3 timeline
+      - Returns results in time order (oldest to newest)
+      - Query parameter optional (filters if provided)
+      - Use with time_range and/or session_id
+
+    HYBRID MODE:
+      - Combines semantic relevance + temporal filtering
+      - Use for: "Recent debugging attempts"
+      - Supports all filtering options
+
+    EXAMPLES:
+
+    Semantic: recall_memory(query="embedding decisions")
+
+    Chronological: recall_memory(
+        retrieval_mode="chronological",
+        session_id="phase3",
+        time_range="2025-10-08,2025-10-11"
+    )
+
+    Hybrid: recall_memory(
+        query="debugging",
+        retrieval_mode="hybrid",
+        time_range="2025-10-10,",
+        event_types="discovery,error"
+    )
 
     Args:
-        query: Natural language or code query
+        query: Semantic search query (optional for chronological mode)
         top_k: Number of results (default: 10)
-        session_id: Filter by session ID (optional)
-        min_score: Minimum similarity score (0-1, default: 0.0)
+        session_id: Filter by session ID
+        min_score: Minimum similarity score (0-1)
+        retrieval_mode: "semantic", "chronological", or "hybrid"
+        time_range: "start,end" or "start," (open-ended)
+        event_types: "type1,type2" (comma-separated)
+        sort_by: "score" or "time"
 
     Returns:
         Formatted search results with scores and metadata
@@ -163,24 +236,55 @@ async def recall_memory(
     # Build filter if session_id provided
     filter_dict = {"session_id": session_id} if session_id else None
 
-    # Search vector store
-    results = store.search(query, top_k=top_k, filter=filter_dict)
+    # Parse time_range if provided
+    time_range_tuple = None
+    if time_range:
+        parts = time_range.split(",")
+        start = parts[0] if parts[0] else None
+        end = parts[1] if len(parts) > 1 and parts[1] else None
+        if start:
+            time_range_tuple = (start, end)
 
-    # Filter by minimum score
-    results = [r for r in results if r.score >= min_score]
+    # Parse event_types if provided
+    event_types_list = None
+    if event_types:
+        event_types_list = [t.strip() for t in event_types.split(",")]
+
+    # Search vector store with new parameters
+    results = store.search(
+        query=query,
+        top_k=top_k,
+        filter=filter_dict,
+        retrieval_mode=retrieval_mode,
+        time_range=time_range_tuple,
+        event_types=event_types_list,
+        sort_by=sort_by,
+    )
+
+    # Filter by minimum score (for semantic/hybrid modes)
+    if retrieval_mode != "chronological":
+        results = [r for r in results if r.score >= min_score]
 
     if not results:
         return "No matching memories found."
 
     # Format results
+    mode_label = retrieval_mode.upper()
     output_lines = [
-        f"Found {len(results)} relevant memories:\n",
+        f"Found {len(results)} relevant memories ({mode_label} mode):\n",
     ]
 
     for i, result in enumerate(results, 1):
         session = result.metadata.get("session_id", "unknown")
         ingested_at = result.metadata.get("ingested_at", "unknown")
-        output_lines.append(f"\n--- Memory {i} (Score: {result.score:.3f}) ---")
+        event_type = result.metadata.get("event_type", "memory")
+
+        # Show score for semantic/hybrid, hide for chronological
+        if retrieval_mode == "chronological":
+            output_lines.append(f"\n--- Memory {i} [{event_type}] ---")
+        else:
+            output_lines.append(f"\n--- Memory {i} (Score: {result.score:.3f}) [{event_type}] ---")
+
         output_lines.append(f"Session: {session}")
         output_lines.append(f"Ingested: {ingested_at}")
         output_lines.append(f"Content:\n{result.content}")
