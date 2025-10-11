@@ -186,3 +186,8 @@ async def memory_stats() -> str:
         f"Dimension: {dimension}D\n"
         f"Qdrant: {config.qdrant_host}:{config.qdrant_port}"
     )
+
+
+if __name__ == "__main__":
+    # Run the MCP server
+    mcp.run()
