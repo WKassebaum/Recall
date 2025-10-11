@@ -18,10 +18,17 @@ class TestEndToEndIngestion:
 
     @pytest.fixture
     def cleanup_collections(self) -> None:
-        """Clean up test collections after each test."""
-        yield
-        # Cleanup
+        """Clean up test collections before and after each test."""
+        # Cleanup before test (ensure clean state)
         backend = QdrantBackend(host="localhost", port=6333)
+        try:
+            backend.delete_collection("recall_768d")
+        except Exception:
+            pass
+
+        yield
+
+        # Cleanup after test
         try:
             backend.delete_collection("recall_768d")
         except Exception:
