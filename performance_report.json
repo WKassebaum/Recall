@@ -1,0 +1,33 @@
+{
+  "system_info": {
+    "platform": "Darwin",
+    "machine": "arm64",
+    "python_version": "3.13.7"
+  },
+  "model_info": {
+    "name": "Snowflake/snowflake-arctic-embed-m",
+    "load_time_ms": 1614.6,
+    "memory_mb": 0.0
+  },
+  "memory": {
+    "initial_mb": 0.0,
+    "peak_mb": 0.0,
+    "final_mb": 0.0,
+    "delta_mb": 0.0,
+    "target_mb": 8192,
+    "within_target": true
+  },
+  "latency": {
+    "embedding_avg_ms": 79.0,
+    "query_avg_ms": 17.5,
+    "ingestion_avg_ms": 30.8,
+    "query_target_ms": 500,
+    "within_target": true
+  },
+  "throughput": {
+    "chunks_per_second": 32.4,
+    "total_chunks": 40,
+    "target_chunks_per_sec": 50,
+    "within_target": false
+  }
+}
