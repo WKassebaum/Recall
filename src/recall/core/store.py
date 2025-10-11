@@ -330,14 +330,14 @@ class UnifiedVectorStore:
         Returns:
             Chunks within time range
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         start_time_str, end_time_str = time_range
         start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
         end_time = (
             datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
             if end_time_str
-            else datetime.max
+            else datetime.max.replace(tzinfo=timezone.utc)
         )
 
         filtered = []
