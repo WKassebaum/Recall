@@ -48,8 +48,14 @@ def get_components() -> (
     global _config, _chunker_factory, _embedder, _store
 
     if _config is None:
-        # Load configuration
-        _config = load_config("config.yaml")
+        # Load configuration - use absolute path or fallback to relative
+        import pathlib
+
+        config_path = os.environ.get(
+            "RECALL_CONFIG",
+            str(pathlib.Path(__file__).parent.parent.parent.parent / "config.yaml"),
+        )
+        _config = load_config(config_path)
 
         # Initialize chunker factory
         _chunker_factory = ChunkerFactory()
