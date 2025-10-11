@@ -217,7 +217,7 @@ Organize memories by type for targeted retrieval:
 ### Embedding Models
 
 **Primary (default):**
-- `snowflake/arctic-embed-m` - 87% accuracy, 1024D, ~3.5GB
+- `snowflake/arctic-embed-m` - 87% accuracy, 768D, ~3.5GB
   - Purpose-built for retrieval tasks
   - SOTA performance, excellent on M1 Max (~35ms/query)
 
@@ -311,9 +311,8 @@ Core Engine
   └─ UnifiedVectorStore
        ↓
 Qdrant Vector Database
-  ├─ recall_384d (384-dimension collection)
-  ├─ recall_768d (768-dimension collection)
-  └─ recall_1024d (1024-dimension collection)
+  ├─ recall_384d (384-dimension: all-MiniLM-L6-v2, bge-small-en-v1.5)
+  └─ recall_768d (768-dimension: snowflake-arctic-embed-m, nomic-embed-text-v1.5)
 ```
 
 **Key Design Decisions:**
@@ -346,7 +345,7 @@ qdrant:
 # MULTI-COLLECTION (auto-managed)
 collections:
   auto_create: true
-  # recall_384d, recall_768d, recall_1024d created automatically
+  # recall_384d (384D models), recall_768d (768D models) created automatically
 
 # MONITORING
 monitoring:

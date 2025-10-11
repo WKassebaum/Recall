@@ -16,12 +16,6 @@ Before starting, verify you have:
   # Should show: Claude Code version X.X.X
   ```
 
-- [ ] **Docker Desktop** installed and running
-  ```bash
-  docker --version
-  # Should show: Docker version X.X.X
-  ```
-
 - [ ] **Python 3.10+** installed
   ```bash
   python --version
@@ -36,31 +30,7 @@ Before starting, verify you have:
 
 ## 🚀 Step-by-Step Test
 
-### Step 1: Start Qdrant Vector Database
-
-**Run in your terminal** (not in Claude Code):
-
-```bash
-docker run -d -p 6333:6333 qdrant/qdrant
-```
-
-**Verify it's running:**
-```bash
-curl localhost:6333
-```
-
-**Expected output:** JSON response like:
-```json
-{"title":"qdrant - vector search engine","version":"1.X.X"}
-```
-
-**❌ If you get "Connection refused":**
-- Docker Desktop might not be running
-- Port 6333 might be in use: `lsof -i :6333`
-
----
-
-### Step 2: Install Recall Plugin
+### Step 1: Install Recall Plugin
 
 **Open Claude Code** and run this command inside Claude Code:
 
@@ -86,7 +56,7 @@ Installing plugin from https://github.com/WKassebaum/Recall...
 
 ---
 
-### Step 3: Run Setup & Validation
+### Step 2: Run Setup & Validation
 
 **In Claude Code**, run:
 
@@ -99,21 +69,21 @@ Installing plugin from https://github.com/WKassebaum/Recall...
 ```
 🔧 Recall Setup & Validation
 
-✅ Qdrant running at localhost:6333
+✅ Qdrant initialized in embedded mode
 ⏳ Loading embedding model (first time: downloading ~3.5GB)...
    [This takes 30-60 seconds on first run]
-✅ Embedding model loaded: snowflake-arctic-embed-m (1024D)
-✅ Collections initialized: recall_1024d
+✅ Embedding model loaded: snowflake-arctic-embed-m (768D)
+✅ Collections initialized: recall_768d
 ✅ Test memory stored: chunk_test_abc123
 ✅ Test memory retrieved (score: 1.000)
 ✅ All systems operational
 
 📊 Configuration:
 - Embedder: snowflake-arctic-embed-m
-- Dimension: 1024D
-- Active collection: recall_1024d
+- Dimension: 768D
+- Active collection: recall_768d
 - Total chunks: 1
-- Qdrant: localhost:6333
+- Qdrant: embedded (~/.recall/qdrant/)
 
 ⚡ Performance:
 - Query latency: 17.5ms (target: <500ms)
@@ -133,13 +103,7 @@ Try:
 
 **❌ If setup fails:**
 
-1. **Qdrant not running:**
-   ```
-   ❌ Qdrant not accessible at localhost:6333
-   ```
-   **Fix:** Go back to Step 1 and start Qdrant
-
-2. **Model download fails:**
+1. **Model download fails:**
    ```
    ❌ Failed to download embedding model
    ```
@@ -152,7 +116,7 @@ Try:
      python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('Snowflake/snowflake-arctic-embed-m')"
      ```
 
-3. **Permission errors:**
+2. **Permission errors:**
    ```
    ❌ Permission denied writing to ~/.cache/huggingface/
    ```
@@ -164,7 +128,7 @@ Try:
 
 ---
 
-### Step 4: Test Core Features
+### Step 3: Test Core Features
 
 Now test the main slash commands:
 
@@ -241,16 +205,16 @@ Testing Recall plugin installation
 ```
 📊 Recall Statistics:
 Total chunks: 1
-Active collection: recall_1024d
-Embedder: snowflake-arctic-embed-m
-Dimension: 1024D
-Qdrant: localhost:6333
+Active collection: recall_768d
+Embedder: Snowflake/snowflake-arctic-embed-m
+Dimension: 768D
+Qdrant: embedded (~/.recall/qdrant/)
 ```
 
 **✅ Success criteria:**
 - Shows at least 1 chunk (from test)
-- Active collection is recall_1024d
-- Embedder is snowflake-arctic-embed-m
+- Active collection is recall_768d
+- Embedder is Snowflake/snowflake-arctic-embed-m
 
 ---
 
@@ -258,9 +222,9 @@ Qdrant: localhost:6333
 
 After completing all steps, verify:
 
-- [x] Qdrant is running (`curl localhost:6333`)
 - [x] Plugin installed successfully (`/plugin install`)
 - [x] Setup passed all checks (`/recall-setup`)
+- [x] Embedded Qdrant initialized (`~/.recall/qdrant/` created)
 - [x] Stored a test memory (`/recall-store`)
 - [x] Searched and found memory (`/recall-search`)
 - [x] Timeline shows memories (`/recall-timeline`)
@@ -307,36 +271,6 @@ After completing all steps, verify:
 Pre-download model outside Claude Code:
 ```bash
 python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('Snowflake/snowflake-arctic-embed-m')"
-```
-
----
-
-### Issue 4: "Port 6333 already in use"
-
-**Cause:** Another Qdrant instance or service using port
-
-**Fix:**
-```bash
-# Find what's using port 6333
-lsof -i :6333
-
-# If it's Qdrant, stop it
-docker stop $(docker ps -q --filter "ancestor=qdrant/qdrant")
-
-# Start fresh
-docker run -d -p 6333:6333 qdrant/qdrant
-```
-
----
-
-### Issue 5: Docker permission errors (Linux)
-
-**Cause:** User not in docker group
-
-**Fix:**
-```bash
-sudo usermod -aG docker $USER
-# Then log out and back in
 ```
 
 ---
@@ -413,14 +347,13 @@ If you encounter problems:
    ```bash
    # System info
    claude --version
-   docker --version
    python --version
 
    # Recall stats
    /recall-stats  # In Claude Code
 
-   # Qdrant health
-   curl localhost:6333
+   # Check embedded Qdrant
+   ls -la ~/.recall/qdrant/
    ```
 
 3. **Report issue on GitHub:**
@@ -435,8 +368,8 @@ If you encounter problems:
 If all tests pass, congratulations! You've successfully:
 
 ✅ Installed Recall as a Claude Code plugin
-✅ Configured the vector database (Qdrant)
-✅ Downloaded the embedding model (Arctic)
+✅ Initialized embedded vector database in ~/.recall/qdrant/
+✅ Downloaded the Arctic embedding model (768D)
 ✅ Stored and retrieved memories
 ✅ Used slash commands for common operations
 

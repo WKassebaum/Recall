@@ -27,17 +27,48 @@ from recall.core.store import Chunk
 class QdrantBackend:
     """Qdrant storage backend for UnifiedVectorStore."""
 
-    def __init__(self, host: str = "localhost", port: int = 6333) -> None:
+    def __init__(
+        self,
+        host: str | None = None,
+        port: int = 6333,
+        path: str | None = None,
+    ) -> None:
         """
         Initialize Qdrant backend.
 
+        Supports both embedded and network modes:
+        - Embedded: path="~/.recall/qdrant" (default, recommended)
+        - Network: host="localhost", port=6333
+
         Args:
-            host: Qdrant host
-            port: Qdrant port
+            host: Qdrant host (for network mode)
+            port: Qdrant port (for network mode)
+            path: Local storage path (for embedded mode)
         """
-        self.client = QdrantClient(host=host, port=port)
-        self.host = host
-        self.port = port
+        self.mode: str
+        self.path: str | None
+        self.host: str | None
+        self.port: int | None
+
+        if path:
+            # Embedded mode (local storage)
+            import os
+
+            expanded_path = os.path.expanduser(path)
+            self.client = QdrantClient(path=expanded_path)
+            self.mode = "embedded"
+            self.path = expanded_path
+            self.host = None
+            self.port = None
+        elif host:
+            # Network mode (Docker or remote)
+            self.client = QdrantClient(host=host, port=port)
+            self.mode = "network"
+            self.host = host
+            self.port = port
+            self.path = None
+        else:
+            raise ValueError("Must provide either 'path' (embedded) or 'host' (network)")
 
     def health_check(self) -> bool:
         """

@@ -17,8 +17,8 @@ class TestMCPServerIntegration:
     def cleanup_collections(self) -> None:
         """Clean up test collections after each test."""
         yield
-        # Cleanup
-        backend = QdrantBackend(host="localhost", port=6333)
+        # Cleanup - use embedded mode
+        backend = QdrantBackend(path="~/.recall/qdrant")
         try:
             backend.delete_collection("recall_768d")
         except Exception:

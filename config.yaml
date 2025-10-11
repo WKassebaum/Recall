@@ -18,15 +18,21 @@ available_models:
   - all-MiniLM-L6-v2           # 78.1% - speed
 
 # QDRANT CONFIGURATION
+# EMBEDDED MODE (default) - Data stored locally in ~/.recall/qdrant/
+# No Docker required, data is user-accessible
 qdrant:
-  host: localhost
-  port: 6333
+  mode: embedded  # Use "embedded" (default) or "network" (Docker/remote)
+  path: ~/.recall/qdrant/  # Path for embedded mode
+  # host: localhost  # For network mode (Docker)
+  # port: 6333       # For network mode (Docker)
   # api_key: optional - uncomment and set if using Qdrant Cloud
 
 # MULTI-COLLECTION (auto-managed by UnifiedVectorStore)
 collections:
   auto_create: true
-  # semvecmem_384d, semvecmem_768d, semvecmem_1024d created automatically
+  # recall_384d (all-MiniLM-L6-v2, bge-small-en-v1.5)
+  # recall_768d (snowflake-arctic-embed-m, nomic-embed-text-v1.5)
+  # Collections created automatically based on active embedder dimension
 
 # MONITORING
 monitoring:

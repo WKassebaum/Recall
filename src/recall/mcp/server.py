@@ -77,8 +77,8 @@ def get_components() -> (
         # Initialize embedder
         _embedder = SentenceTransformerEmbedder(_config.embedder_model)
 
-        # Initialize Qdrant backend
-        backend = QdrantBackend(host=_config.qdrant_host, port=_config.qdrant_port)
+        # Initialize Qdrant backend (embedded mode with local storage)
+        backend = QdrantBackend(path="~/.recall/qdrant")
 
         # Initialize unified store
         _store = UnifiedVectorStore(backend=backend)
@@ -321,13 +321,21 @@ async def memory_stats() -> str:
     embedder_name = embedder.name
     dimension = embedder.dimension
 
+    # Get backend mode and location
+    backend = store.backend
+    assert backend is not None  # Type narrowing
+    if backend.mode == "embedded":
+        qdrant_info = f"embedded ({backend.path})"
+    else:
+        qdrant_info = f"{backend.host}:{backend.port}"
+
     return (
         f"📊 Recall Statistics:\n"
         f"Total chunks: {total_chunks}\n"
         f"Active collection: {active_collection}\n"
         f"Embedder: {embedder_name}\n"
         f"Dimension: {dimension}D\n"
-        f"Qdrant: {config.qdrant_host}:{config.qdrant_port}"
+        f"Qdrant: {qdrant_info}"
     )
 
 
