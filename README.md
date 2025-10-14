@@ -36,33 +36,7 @@ Recall is a long-term semantic memory system that addresses context window limit
 
 ### Installation via Plugin (Recommended) ⭐
 
-#### **Option A: Automatic Installation (Team/Trusted Repos)**
-
-If you have access to the repository, installation is automatic:
-
-```bash
-# 1. Clone and navigate to the repository
-git clone https://github.com/WKassebaum/Recall.git
-cd Recall
-
-# 2. Trust the repository when prompted by Claude Code
-# The marketplace and plugin will auto-install!
-
-# 3. Verify installation
-/recall-setup
-```
-
-When you trust the repository, Claude Code automatically:
-- ✅ Adds the Recall marketplace
-- ✅ Installs and enables the plugin
-- ✅ Configures the MCP server
-- ✅ Activates all slash commands
-
----
-
-#### **Option B: Manual Plugin Install (Public Marketplace)**
-
-For users without repository access:
+**Two-step installation** - works from anywhere:
 
 ```bash
 # 1. Add Recall as a plugin marketplace
@@ -74,6 +48,8 @@ For users without repository access:
 # 3. Verify installation
 /recall-setup
 ```
+
+**Note:** While the repository includes `.claude/settings.json` for automatic installation when trusted, the Claude Code trust mechanism can be inconsistent. Manual installation above is more reliable and works regardless of repository trust status.
 
 ---
 
