@@ -32,7 +32,6 @@ Recall is a long-term semantic memory system that addresses context window limit
 ### Prerequisites
 
 - Python 3.10+
-- Docker Desktop (for Qdrant vector database)
 - Claude Code CLI or compatible MCP client
 
 ### Installation via Plugin (Recommended) ⭐
@@ -56,12 +55,9 @@ claude mcp add-marketplace https://github.com/WKassebaum/Recall
 - ✅ One-command installation
 - ✅ Auto-updates
 
-**Setup requirements:**
+**Setup verification:**
 ```bash
-# 1. Start Qdrant (vector database)
-docker run -d -p 6333:6333 qdrant/qdrant
-
-# 2. Run setup to verify installation
+# Run setup to verify installation
 /recall-setup
 ```
 
@@ -84,9 +80,6 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Start Qdrant (vector database)
-docker run -d -p 6333:6333 qdrant/qdrant
 ```
 
 **First Launch Note:** On first use, sentence-transformers will automatically download the Arctic embedding model (~3.5GB) from HuggingFace to `~/.cache/huggingface/`. This takes 30-60 seconds on a good connection. Subsequent launches are instant.
@@ -316,6 +309,7 @@ Qdrant Vector Database
 ```
 
 **Key Design Decisions:**
+- **Embedded Qdrant** - Zero-setup vector database stored at `~/.recall/qdrant/` (no Docker required)
 - **Multi-collection strategy** - Separate collections per embedding dimension (prevents dimension mismatch errors)
 - **Unified API** - Automatic routing to correct collection based on active embedder
 - **2-tier fallback** - Arctic (primary) → MiniLM (fallback) for reliability

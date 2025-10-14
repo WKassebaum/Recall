@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "recall": {
+      "command": "python",
+      "args": ["-m", "recall.mcp.server"],
+      "env": {
+        "PYTHONPATH": "{{PLUGIN_DIR}}/src",
+        "RECALL_CONFIG": "{{PLUGIN_DIR}}/config.yaml"
+      }
+    }
+  }
+}
