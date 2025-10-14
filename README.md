@@ -36,17 +36,14 @@ Recall is a long-term semantic memory system that addresses context window limit
 
 ### Installation via Plugin (Recommended) ⭐
 
-**Easiest way to get started** - one command installs everything:
+**Easiest way to get started** - two simple commands:
 
 ```bash
-# Add Recall marketplace
-claude mcp add-marketplace https://github.com/WKassebaum/Recall
-
-# Install Recall plugin
+# 1. Add Recall as a plugin marketplace
 /plugin marketplace add WKassebaum/Recall
 
-# Or install directly from repository
-/plugin install https://github.com/WKassebaum/Recall
+# 2. Install the Recall plugin
+/plugin install recall@Recall
 ```
 
 **What you get:**
