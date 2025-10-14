@@ -36,7 +36,7 @@ Recall is a long-term semantic memory system that addresses context window limit
 
 ### Installation via Plugin (Recommended) ⭐
 
-**Two-step installation** - works from anywhere:
+**Three-step installation** - works from anywhere:
 
 ```bash
 # 1. Add Recall as a plugin marketplace
@@ -45,11 +45,16 @@ Recall is a long-term semantic memory system that addresses context window limit
 # 2. Install the Recall plugin
 /plugin install recall@Recall
 
-# 3. Verify installation
+# 3. Install Python dependencies
+/recall-install
+
+# 4. Restart Claude Code (Cmd/Ctrl + Q)
+
+# 5. Verify installation
 /recall-setup
 ```
 
-**Note:** While the repository includes `.claude/settings.json` for automatic installation when trusted, the Claude Code trust mechanism can be inconsistent. Manual installation above is more reliable and works regardless of repository trust status.
+**Note:** The `/recall-install` command installs Python dependencies (qdrant-client, sentence-transformers, mcp, etc.) required for the MCP server to function. This is a one-time setup step.
 
 ---
 
