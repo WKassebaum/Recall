@@ -1,0 +1,32 @@
+{
+  "name": "Recall",
+  "description": "Semantic vector memory for AI coding assistants - external working memory with dual-mode retrieval",
+  "version": "1.3.3",
+  "author": {
+    "name": "William Kassebaum",
+    "email": "wkassebaum@gmail.com",
+    "url": "https://github.com/WKassebaum"
+  },
+  "plugins": [
+    {
+      "name": "recall",
+      "version": "1.3.3",
+      "description": "Semantic vector memory for AI coding assistants - dual-mode retrieval (semantic + episodic)",
+      "source": {
+        "type": "github",
+        "repo": "WKassebaum/Recall"
+      },
+      "homepage": "https://github.com/WKassebaum/Recall",
+      "keywords": [
+        "memory",
+        "vector-database",
+        "embeddings",
+        "mcp",
+        "semantic-search",
+        "episodic-memory",
+        "coding-assistant",
+        "context-management"
+      ]
+    }
+  ]
+}
