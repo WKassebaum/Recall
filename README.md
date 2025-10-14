@@ -36,7 +36,33 @@ Recall is a long-term semantic memory system that addresses context window limit
 
 ### Installation via Plugin (Recommended) ⭐
 
-**Easiest way to get started** - two simple commands:
+#### **Option A: Automatic Installation (Team/Trusted Repos)**
+
+If you have access to the repository, installation is automatic:
+
+```bash
+# 1. Clone and navigate to the repository
+git clone https://github.com/WKassebaum/Recall.git
+cd Recall
+
+# 2. Trust the repository when prompted by Claude Code
+# The marketplace and plugin will auto-install!
+
+# 3. Verify installation
+/recall-setup
+```
+
+When you trust the repository, Claude Code automatically:
+- ✅ Adds the Recall marketplace
+- ✅ Installs and enables the plugin
+- ✅ Configures the MCP server
+- ✅ Activates all slash commands
+
+---
+
+#### **Option B: Manual Plugin Install (Public Marketplace)**
+
+For users without repository access:
 
 ```bash
 # 1. Add Recall as a plugin marketplace
@@ -44,19 +70,18 @@ Recall is a long-term semantic memory system that addresses context window limit
 
 # 2. Install the Recall plugin
 /plugin install recall@Recall
-```
 
-**What you get:**
-- ✅ Automatic MCP server configuration
-- ✅ Helpful slash commands: `/recall-store`, `/recall-search`, `/recall-timeline`, `/recall-stats`, `/recall-setup`
-- ✅ One-command installation
-- ✅ Auto-updates
-
-**Setup verification:**
-```bash
-# Run setup to verify installation
+# 3. Verify installation
 /recall-setup
 ```
+
+---
+
+**What you get with either option:**
+- ✅ Automatic MCP server configuration
+- ✅ Helpful slash commands: `/recall-store`, `/recall-search`, `/recall-timeline`, `/recall-stats`, `/recall-setup`
+- ✅ Zero-setup embedded Qdrant
+- ✅ All data stored locally at `~/.recall/qdrant/`
 
 **First Launch Note:** On first use, sentence-transformers will automatically download the Arctic embedding model (~3.5GB) from HuggingFace to `~/.cache/huggingface/`. This takes 30-60 seconds on a good connection. Subsequent launches are instant.
 
