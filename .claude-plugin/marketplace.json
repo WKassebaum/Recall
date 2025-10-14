@@ -4,7 +4,9 @@
     "name": "William Kassebaum",
     "email": "wrk@kassebaumengineering.com"
   },
-  "description": "Semantic vector memory for AI coding assistants - external working memory with dual-mode retrieval",
+  "metadata": {
+    "description": "Semantic vector memory for AI coding assistants - external working memory with dual-mode retrieval. Store decisions, discoveries, and milestones; retrieve by meaning OR timeline. Zero cloud dependencies, fully local."
+  },
   "plugins": [
     {
       "name": "recall",
