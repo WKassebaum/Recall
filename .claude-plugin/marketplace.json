@@ -2,13 +2,13 @@
   "name": "recall-marketplace",
   "owner": {
     "name": "William Kassebaum",
-    "email": "wkassebaum@gmail.com"
+    "email": "wrk@kassebaumengineering.com"
   },
   "description": "Semantic vector memory for AI coding assistants - external working memory with dual-mode retrieval",
   "plugins": [
     {
       "name": "recall",
-      "source": ".",
+      "source": "./",
       "version": "1.3.3",
       "description": "Semantic vector memory for AI coding assistants - dual-mode retrieval (semantic + episodic)"
     }
