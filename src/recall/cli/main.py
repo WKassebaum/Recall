@@ -11,6 +11,7 @@ import click
 from recall.backends.qdrant import QdrantBackend
 from recall.chunking.factory import ChunkerFactory
 from recall.cli.migrate import migrate_embeddings
+from recall.cli.setup import setup
 from recall.config.loader import load_config
 from recall.core.store import SearchResult, UnifiedVectorStore
 from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
@@ -200,6 +201,9 @@ def setup_qdrant() -> None:
 
 # Add migration command to CLI group
 cli.add_command(migrate_embeddings, name="migrate")
+
+# Add setup command to CLI group
+cli.add_command(setup, name="setup")
 
 
 if __name__ == "__main__":

@@ -19,8 +19,10 @@ import os
 import sys
 import warnings
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Annotated
 
+from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
@@ -29,6 +31,11 @@ from recall.chunking.factory import ChunkerFactory
 from recall.config.loader import Config, load_config
 from recall.core.store import UnifiedVectorStore
 from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
+
+# Load .env configuration from ~/.recall/.env
+env_file = Path.home() / ".recall" / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
 
 # Suppress all logging to stdout (MCP protocol requires clean stdout)
 # Redirect to stderr or disable entirely
@@ -77,10 +84,20 @@ def get_components() -> (
         # Initialize embedder
         _embedder = SentenceTransformerEmbedder(_config.embedder_model)
 
-        # Initialize Qdrant backend (embedded mode with local storage)
-        # Support RECALL_QDRANT_PATH for test isolation
-        qdrant_path = os.environ.get("RECALL_QDRANT_PATH", "~/.recall/qdrant")
-        backend = QdrantBackend(path=qdrant_path)
+        # Initialize Qdrant backend based on mode
+        # Supports both embedded (file) and network (Docker) modes
+        qdrant_mode = os.environ.get("RECALL_QDRANT_MODE", "embedded")
+
+        if qdrant_mode == "network":
+            # Network mode: Connect to Docker or remote Qdrant
+            host = os.environ.get("RECALL_QDRANT_HOST", "localhost")
+            port = int(os.environ.get("RECALL_QDRANT_PORT", "6333"))
+            backend = QdrantBackend(host=host, port=port)
+        else:
+            # Embedded mode: Local file storage
+            # Support RECALL_QDRANT_PATH for test isolation and custom paths
+            qdrant_path = os.environ.get("RECALL_QDRANT_PATH", "~/.recall/qdrant")
+            backend = QdrantBackend(path=qdrant_path)
 
         # Initialize unified store
         _store = UnifiedVectorStore(backend=backend)
