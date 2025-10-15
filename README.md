@@ -33,10 +33,11 @@ Recall is a long-term semantic memory system that addresses context window limit
 
 - Python 3.10+
 - Claude Code CLI or compatible MCP client
+- Docker (optional, required for network mode multi-project support)
 
 ### Installation via Plugin (Recommended) ⭐
 
-**Three-step installation** - works from anywhere:
+**Four-step installation** - works from anywhere:
 
 ```bash
 # 1. Add Recall as a plugin marketplace
@@ -48,21 +49,27 @@ Recall is a long-term semantic memory system that addresses context window limit
 # 3. Install Python dependencies
 /recall-install
 
-# 4. Restart Claude Code (Cmd/Ctrl + Q)
+# 4. Configure Qdrant storage mode
+recall setup
 
-# 5. Verify installation
+# 5. Restart Claude Code (Cmd/Ctrl + Q)
+
+# 6. Verify installation
 /recall-setup
 ```
 
 **Note:** The `/recall-install` command installs Python dependencies (qdrant-client, sentence-transformers, mcp, etc.) required for the MCP server to function. This is a one-time setup step.
 
+**Important:** Step 4 (`recall setup`) is required to choose between embedded (simple) or network (multi-project) mode. See [Multi-Project Support](#-multi-project-support) below.
+
 ---
 
-**What you get with either option:**
+**What you get:**
 - ✅ Automatic MCP server configuration
 - ✅ Helpful slash commands: `/recall-store`, `/recall-search`, `/recall-timeline`, `/recall-stats`, `/recall-setup`
-- ✅ Zero-setup embedded Qdrant
-- ✅ All data stored locally at `~/.recall/qdrant/`
+- ✅ Choice of storage modes (embedded or network Docker)
+- ✅ Multi-project support (network mode)
+- ✅ All data stored locally (no cloud dependencies)
 
 **First Launch Note:** On first use, sentence-transformers will automatically download the Arctic embedding model (~3.5GB) from HuggingFace to `~/.cache/huggingface/`. This takes 30-60 seconds on a good connection. Subsequent launches are instant.
 
@@ -115,6 +122,72 @@ claude mcp add-json --scope user recall '{
 mcp__recall__memory_stats()
 # Should show: Embedder: snowflake-arctic-embed-m, Collection: recall_768d
 ```
+
+---
+
+## 🔀 Multi-Project Support
+
+**Important Decision:** Recall supports two storage modes with different capabilities:
+
+### Mode Comparison
+
+| Feature | Embedded (Local) | Network (Docker) |
+|---------|------------------|------------------|
+| **Multi-project** | ❌ ONE AT A TIME | ✅ Unlimited concurrent |
+| **Multi-window** | ❌ File locking issues | ✅ Thread-safe |
+| **Setup** | ✅ Zero-config | ⚠️ Requires Docker |
+| **Performance** | ✅ Slightly faster | ✅ Fast enough (<20ms) |
+| **Data location** | `~/.recall/qdrant/` | Docker volume |
+| **Recommended for** | Single-project testing | **Production use** |
+
+### Quick Decision Guide
+
+**Choose Embedded Mode if:**
+- ✅ You only work on ONE project at a time
+- ✅ You never open multiple Claude Code windows simultaneously
+- ✅ You want zero-setup simplicity
+
+**Choose Network Mode (Docker) if:**
+- ✅ You work on multiple projects concurrently
+- ✅ You open multiple Claude Code windows
+- ✅ You want thread-safe, scalable storage
+- ✅ **Recommended for normal usage**
+
+### Interactive Setup Wizard
+
+Run the setup wizard to configure your preferred mode:
+
+```bash
+recall setup
+```
+
+The wizard will:
+1. ✅ Detect your system (Python, Docker, existing Qdrant)
+2. ✅ Explain mode limitations and benefits
+3. ✅ Help you choose the right mode
+4. ✅ Create Docker Qdrant instance (network mode)
+5. ✅ Test connection before saving
+6. ✅ Generate configuration at `~/.recall/.env`
+
+**Reconfigure anytime:**
+```bash
+recall setup --reconfigure
+```
+
+### Quick Fix for Existing Users
+
+If you're already using Recall in embedded mode and want multi-project support immediately:
+
+**See:** [QUICK_FIX_MULTI_PROJECT.md](QUICK_FIX_MULTI_PROJECT.md) for step-by-step workaround
+
+**TL;DR:**
+1. Start Docker Qdrant: `docker run -d --name recall-qdrant -p 6333:6333 qdrant/qdrant:latest`
+2. Create `~/.recall/.env` with `RECALL_QDRANT_MODE=network`
+3. Restart Claude Code
+
+### Migration Between Modes
+
+**Coming soon in v1.4.0:** `recall migrate-mode` command to transfer memories between embedded and network modes without data loss.
 
 ---
 
@@ -312,17 +385,48 @@ Qdrant Vector Database
 ```
 
 **Key Design Decisions:**
-- **Embedded Qdrant** - Zero-setup vector database stored at `~/.recall/qdrant/` (no Docker required)
+- **Dual Storage Modes** - Embedded (simple, single-project) or Network (Docker, multi-project)
 - **Multi-collection strategy** - Separate collections per embedding dimension (prevents dimension mismatch errors)
 - **Unified API** - Automatic routing to correct collection based on active embedder
 - **2-tier fallback** - Arctic (primary) → MiniLM (fallback) for reliability
 - **Hybrid architecture** - Single storage (vector DB), dual retrieval (semantic OR temporal)
+- **Environment-first config** - `.env` files take precedence for flexible deployment
 
 ---
 
 ## 🔧 Configuration
 
-Edit `config.yaml` to customize:
+### Environment Configuration (Recommended)
+
+Recall uses `~/.recall/.env` for runtime configuration (automatically created by `recall setup`):
+
+```env
+# Qdrant Storage Mode
+RECALL_QDRANT_MODE=network  # or "embedded"
+
+# Network Mode Settings (Docker)
+RECALL_QDRANT_HOST=localhost
+RECALL_QDRANT_PORT=6333
+# RECALL_QDRANT_API_KEY=  # Optional for Qdrant Cloud
+
+# Embedded Mode Settings
+# RECALL_QDRANT_PATH=~/.recall/qdrant/
+
+# Embedder Settings
+RECALL_EMBEDDER_MODEL=Snowflake/snowflake-arctic-embed-m
+RECALL_FALLBACK_ENABLED=true
+RECALL_FALLBACK_MODEL=all-MiniLM-L6-v2
+```
+
+**Reconfigure:** Run `recall setup --reconfigure` to update settings interactively.
+
+**Manual editing:** Edit `~/.recall/.env` directly, then restart Claude Code.
+
+---
+
+### Project Configuration (config.yaml)
+
+For advanced customization, edit `config.yaml`:
 
 ```yaml
 # PRIMARY MODEL (default)
@@ -350,12 +454,7 @@ monitoring:
   log_dimension_mismatches: true
 ```
 
-Override via environment variables:
-```bash
-export EMBEDDER_MODEL=snowflake/arctic-embed-m
-export QDRANT_HOST=localhost
-export FALLBACK_ENABLED=true
-```
+**Note:** Environment variables in `~/.recall/.env` take precedence over `config.yaml`.
 
 ---
 
@@ -392,16 +491,17 @@ mypy src/recall --strict
 ### v1.4.0 (Next Release)
 **Focus: Context Management & User Experience**
 
-1. **Context Size Monitoring & Alerts** ⭐ *Highest Priority*
+1. **Mode Migration Tool** ⭐ *In Development*
+   - `recall migrate-mode` command
+   - Transfer memories between embedded ↔ network modes
+   - Canary validation strategy for safety
+   - Zero data loss during migration
+
+2. **Context Size Monitoring & Alerts** ⭐ *High Priority*
    - Real-time context window usage tracking
    - Smart alerts when context reaches 70%+ capacity
    - Automatic suggestions for memories to offload
    - Integration with Claude Code status bar
-
-2. **Smart Mode Selection**
-   - Automatic mode detection (semantic vs chronological vs hybrid)
-   - Query pattern analysis for optimal retrieval
-   - User preference learning
 
 3. **Memory Importance Scoring**
    - Automatic importance calculation based on access patterns
@@ -414,7 +514,12 @@ mypy src/recall --strict
    - Global vs project-scoped memory management
    - Shared decision/preference memory pools
 
-5. **Memory Export/Import**
+5. **Smart Mode Selection**
+   - Automatic mode detection (semantic vs chronological vs hybrid)
+   - Query pattern analysis for optimal retrieval
+   - User preference learning
+
+6. **Memory Export/Import**
    - JSON/YAML export formats
    - Backup and restore functionality
    - Team knowledge sharing capabilities
@@ -488,4 +593,4 @@ Apache 2.0
 
 ---
 
-**Version:** v1.3.3 | **Status:** Production-ready | **Last Updated:** 2025-10-11
+**Version:** v1.3.3 | **Status:** Production-ready | **Last Updated:** 2025-10-15
