@@ -56,6 +56,106 @@ recall doctor --verbose # Include optional checks
 
 ---
 
+## 🚨 Critical Plugin Installation Issues (v1.3.5)
+
+### CRITICAL FINDINGS from Real-World Plugin Installation Testing
+
+**Date Discovered:** 2025-10-15
+**Impact:** Plugin appears installed but is non-functional without manual intervention
+**Frequency:** 100% - Affects all plugin installations
+
+---
+
+### Issue #1: MCP Server Not Auto-Registered ⚠️ **BLOCKING**
+**Severity:** Critical - Blocks all functionality
+**Frequency:** 100%
+
+**Problem:**
+- `/plugin marketplace add WKassebaum/Recall` copies files but doesn't add MCP config to `~/.claude.json`
+- Users see "Failed to reconnect to plugin:recall:recall" error
+- Plugin appears installed but completely non-functional
+
+**Status:** ✅ Documented workaround in INSTALLATION.md
+**Long-term Fix:** Requires Claude Code plugin system enhancement OR post-install hook
+
+**Workaround Implemented:**
+- Comprehensive troubleshooting guide in INSTALLATION.md
+- Manual configuration steps with jq automation
+- Clear error identification and fix steps
+
+---
+
+### Issue #2: Incorrect MCP Server Namespace ⚠️ **CRITICAL**
+**Severity:** High - Prevents connection even after manual configuration
+**Frequency:** 100%
+
+**Problem:**
+- Error shows `plugin:recall:recall` but docs suggest using `recall`
+- Using `"recall"` as key → connection fails
+- Using `"plugin:recall:recall"` as key → connection succeeds
+
+**Status:** ✅ FIXED
+- Updated INSTALLATION.md with correct namespace
+- Added explicit warnings about wrong namespace
+- Created .claude-plugin/README.md documenting namespace behavior
+
+**Files Updated:**
+- INSTALLATION.md (Plugin Installation Troubleshooting section)
+- .claude-plugin/README.md (new)
+
+---
+
+### Issue #3: Virtual Environment Not Auto-Created ⚠️ **HIGH**
+**Severity:** High - Blocks installation on modern Python
+**Frequency:** High - Affects macOS Homebrew, Python 3.12+
+
+**Problem:**
+- Plugin installation doesn't create `.venv`
+- No dependency installation
+- PEP 668 error on modern Python
+
+**Status:** ✅ Documented in INSTALLATION.md
+- Step-by-step venv creation guide
+- Platform-specific instructions
+- Added to plugin troubleshooting section
+
+---
+
+### Issue #4: Template Variables Not Expanded
+**Severity:** Medium - Config not portable
+**Frequency:** 100%
+
+**Problem:**
+- `{{PLUGIN_DIR}}` not expanded to absolute paths
+- `{{HOME}}` not expanded
+
+**Status:** ✅ FIXED
+- Updated .claude-plugin/.mcp.json with template variables
+- Updated .claude-plugin/README.md explaining expected behavior
+- Added troubleshooting for manual absolute path workaround
+
+**Files Updated:**
+- .claude-plugin/.mcp.json (updated with {{PLUGIN_DIR}} and {{HOME}})
+- .claude-plugin/README.md (documents template variable expansion)
+
+---
+
+### Issue #5: Network vs Embedded Mode Confusion
+**Severity:** Medium - Connection failures if Qdrant not running
+**Frequency:** Variable
+
+**Problem:**
+- Default config didn't specify Qdrant mode
+- Users with Docker expected network mode
+- Server defaulted to embedded mode → confusion
+
+**Status:** ✅ FIXED
+- Updated .claude-plugin/.mcp.json to default to embedded mode
+- Added RECALL_QDRANT_MODE and RECALL_QDRANT_PATH
+- Documented both modes in .claude-plugin/README.md
+
+---
+
 ## 🔄 In Progress
 
 ### 4. Enhanced Setup Wizard ⏳
@@ -87,6 +187,102 @@ What it should do:
 ---
 
 ## 📋 Backlog (Priority Order)
+
+### Priority 0 (Critical - Plugin Installation)
+
+#### 5a. Post-Install Hook for Plugin System ⚠️ **CRITICAL**
+**Priority:** Critical
+**Effort:** 6-8 hours
+**Impact:** Eliminates manual configuration for plugin users
+
+**Problem:** Plugin installation doesn't automatically:
+- Create virtual environment
+- Install dependencies
+- Register MCP server in ~/.claude.json
+
+**Solution Options:**
+
+**Option A: Post-Install Script**
+Create `scripts/plugin-setup.sh` that runs after plugin installation:
+```bash
+#!/bin/bash
+# Auto-run by Claude Code plugin system
+
+PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# 1. Create venv
+python3 -m venv "$PLUGIN_DIR/.venv"
+source "$PLUGIN_DIR/.venv/bin/activate"
+pip install -e "$PLUGIN_DIR" --quiet
+
+# 2. Add to ~/.claude.json with correct namespace
+jq '.mcpServers."plugin:recall:recall" = {...}' ~/.claude.json > /tmp/claude_updated.json
+mv /tmp/claude_updated.json ~/.claude.json
+
+echo "✅ Recall MCP server configured"
+```
+
+**Option B: Create `/recall-setup` Slash Command**
+Let users run setup manually after plugin install:
+```bash
+/plugin marketplace add WKassebaum/Recall
+/recall-setup  # User runs this to complete setup
+```
+
+**Recommendation:** Implement both options for maximum compatibility
+
+**Files Affected:**
+- `scripts/plugin-setup.sh` (new)
+- `.claude-plugin/plugin.json` (add postInstall hook)
+- `src/recall/commands/setup.py` (new slash command)
+
+---
+
+#### 5b. /recall-diagnose Diagnostic Slash Command
+**Priority:** High
+**Effort:** 3-4 hours
+
+**Problem:** Users can't easily diagnose plugin installation issues
+
+**Solution:**
+Create `/recall-diagnose` command that checks:
+- MCP server in ~/.claude.json (correct namespace)
+- Virtual environment exists
+- Dependencies installed
+- Qdrant connectivity
+- Configuration validity
+
+**Implementation:**
+```python
+# src/recall/commands/diagnose.py
+@mcp.tool()
+async def diagnose() -> str:
+    """Diagnose Recall installation issues."""
+    checks = []
+
+    # 1. Check ~/.claude.json
+    # 2. Check Python path
+    # 3. Check dependencies
+    # 4. Check Qdrant
+    # 5. Provide fix suggestions
+
+    return "\n".join(checks)
+```
+
+**Expected Output:**
+```
+🔍 Recall Installation Diagnostics
+
+✅ MCP server in ~/.claude.json
+✅ Python exists: /path/to/.venv/bin/python
+✅ Recall package: v1.3.5
+❌ Qdrant connection failed
+   Fix: docker run -d -p 6333:6333 qdrant/qdrant
+
+Run /recall-fix to auto-repair issues
+```
+
+---
 
 ### Priority 1 (High Impact, Quick Wins)
 

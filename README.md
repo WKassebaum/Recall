@@ -40,6 +40,8 @@ Recall is a long-term semantic memory system that addresses context window limit
 
 ### Installation via Plugin (Recommended) ⭐
 
+> ⚠️ **Known Issue:** Claude Code's plugin system may not automatically configure the MCP server. If you encounter "Failed to reconnect to plugin:recall:recall" after installation, see the comprehensive [Plugin Installation Troubleshooting](INSTALLATION.md#plugin-installation-troubleshooting) guide for manual configuration steps.
+
 **Four-step installation** - works from anywhere:
 
 ```bash
@@ -49,27 +51,45 @@ Recall is a long-term semantic memory system that addresses context window limit
 # 2. Install the Recall plugin
 /plugin install recall@Recall
 
-# 3. Install Python dependencies
-/recall-install
+# 3. Configure storage and verify
+# If automatic setup succeeds, verify with:
+/mcp  # Should show: plugin:recall:recall with 3 tools
 
-# 4. Configure Qdrant storage mode
-recall setup
-
-# 5. Restart Claude Code (Cmd/Ctrl + Q)
-
-# 6. Verify installation
-/recall-setup
+# If you see "Failed to reconnect":
+# See INSTALLATION.md for manual configuration
 ```
 
-**Note:** The `/recall-install` command installs Python dependencies (qdrant-client, sentence-transformers, mcp, etc.) required for the MCP server to function. This is a one-time setup step.
+**If Plugin Installation Fails:**
 
-**Important:** Step 4 (`recall setup`) is required to choose between embedded (simple) or network (multi-project) mode. See [Multi-Project Support](#-multi-project-support) below.
+The plugin system may not automatically:
+- Create virtual environment
+- Install dependencies
+- Register MCP server in `~/.claude.json`
+
+**Manual Configuration Required:**
+1. Create virtual environment and install dependencies
+2. Add MCP server configuration to `~/.claude.json` with namespace `plugin:recall:recall`
+3. Use absolute paths (not template variables)
+
+**Detailed Guide:** See [INSTALLATION.md - Plugin Installation Troubleshooting](INSTALLATION.md#plugin-installation-troubleshooting) for step-by-step instructions.
 
 ---
 
-**What you get:**
-- ✅ Automatic MCP server configuration
-- ✅ Helpful slash commands: `/recall-store`, `/recall-search`, `/recall-timeline`, `/recall-stats`, `/recall-setup`
+**After Successful Installation:**
+
+```bash
+# Configure Qdrant storage mode
+recall setup  # Choose embedded or network mode
+
+# Restart Claude Code
+# Cmd/Ctrl + Q, then relaunch
+
+# Verify installation
+/mcp  # Should show: plugin:recall:recall with 3 tools
+```
+
+**What you get (when working):**
+- ✅ MCP server with 3 tools (ingest_memory, recall_memory, memory_stats)
 - ✅ Choice of storage modes (embedded or network Docker)
 - ✅ Multi-project support (network mode)
 - ✅ All data stored locally (no cloud dependencies)

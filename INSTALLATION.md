@@ -133,17 +133,230 @@ Choose between:
 ### Step 7: Verify Installation
 
 ```bash
-/recall-setup
+/mcp
 ```
 
-Expected output:
+**Expected:** Shows `plugin:recall:recall` with 3 tools (ingest_memory, recall_memory, memory_stats)
+
+**If you see "Failed to reconnect to plugin:recall:recall"**, see [Plugin Installation Troubleshooting](#plugin-installation-troubleshooting) below.
+
+---
+
+## Plugin Installation Troubleshooting
+
+### Known Issue: MCP Server Not Auto-Registered ⚠️
+
+**Symptom:**
 ```
-✅ Python 3.13.7 (compatible)
-✅ Virtual environment detected
-✅ Qdrant running: localhost:6333
-✅ Embedder model available: arctic-embed-m (768D)
-✅ Configuration valid
+Failed to reconnect to plugin:recall:recall
 ```
+
+**Cause:** Claude Code's plugin system may not automatically add MCP server configuration to `~/.claude.json`.
+
+**Verification:**
+```bash
+# Check if configuration exists
+cat ~/.claude.json | jq '.mcpServers."plugin:recall:recall"'
+```
+
+**If output is `null` or empty, manual configuration is required:**
+
+---
+
+### Fix 1: Manual MCP Server Configuration
+
+**Step 1: Create Virtual Environment** (if not already done)
+```bash
+cd ~/.claude/plugins/recall@Recall  # Or wherever plugin was installed
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+**Step 2: Get Plugin Directory Path**
+```bash
+cd ~/.claude/plugins/recall@Recall && pwd
+# Example output: /Users/username/.claude/plugins/recall@Recall
+```
+
+**Step 3: Add MCP Server to ~/.claude.json**
+
+**Option A: Using jq (automated)**
+```bash
+# Replace /path/to/Recall with output from Step 2
+PLUGIN_DIR="/path/to/Recall"
+
+jq --arg dir "$PLUGIN_DIR" \
+  '.mcpServers."plugin:recall:recall" = {
+    "command": ($dir + "/.venv/bin/python"),
+    "args": ["-m", "recall.mcp.server"],
+    "env": {
+      "PYTHONPATH": ($dir + "/src"),
+      "RECALL_CONFIG": ($dir + "/config.yaml"),
+      "RECALL_QDRANT_MODE": "embedded",
+      "RECALL_QDRANT_PATH": ($ENV.HOME + "/.recall/qdrant")
+    }
+  }' ~/.claude.json > /tmp/claude_updated.json && \
+  mv /tmp/claude_updated.json ~/.claude.json
+```
+
+**Option B: Manual Edit**
+
+Edit `~/.claude.json` and add:
+```json
+{
+  "mcpServers": {
+    "plugin:recall:recall": {
+      "command": "/absolute/path/to/Recall/.venv/bin/python",
+      "args": ["-m", "recall.mcp.server"],
+      "env": {
+        "PYTHONPATH": "/absolute/path/to/Recall/src",
+        "RECALL_CONFIG": "/absolute/path/to/Recall/config.yaml",
+        "RECALL_QDRANT_MODE": "embedded",
+        "RECALL_QDRANT_PATH": "/Users/YOUR_USERNAME/.recall/qdrant"
+      }
+    }
+  }
+}
+```
+
+**Important Notes:**
+- ✅ Use `plugin:recall:recall` as the key (NOT just `recall`)
+- ✅ Use absolute paths (NOT `{{PLUGIN_DIR}}` template variables)
+- ✅ Use `.venv/bin/python` (NOT just `python`)
+
+**Step 4: Verify Configuration**
+```bash
+cat ~/.claude.json | jq '.mcpServers."plugin:recall:recall"'
+```
+
+Should display your configuration with absolute paths.
+
+**Step 5: Restart Claude Code**
+```bash
+exit  # Exit completely
+claude  # Start new session
+```
+
+**Step 6: Test Connection**
+```bash
+/mcp
+```
+
+Should now show `plugin:recall:recall` connected with 3 tools.
+
+---
+
+### Fix 2: Virtual Environment Issues
+
+**Error:**
+```
+error: externally-managed-environment
+× This environment is externally managed
+```
+
+**Cause:** Modern Python (PEP 668) requires virtual environments.
+
+**Solution:**
+```bash
+cd ~/.claude/plugins/recall@Recall
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+Then follow [Fix 1](#fix-1-manual-mcp-server-configuration) to configure MCP server.
+
+---
+
+### Fix 3: Import Errors / Module Not Found
+
+**Error:**
+```
+ModuleNotFoundError: No module named 'recall'
+```
+
+**Cause:** Dependencies not installed or wrong Python interpreter.
+
+**Solution:**
+```bash
+# 1. Ensure virtual environment exists
+cd ~/.claude/plugins/recall@Recall
+ls .venv/bin/python  # Should exist
+
+# 2. Install dependencies
+source .venv/bin/activate
+pip install -e .
+
+# 3. Verify installation
+python -c "import recall; print(recall.__version__)"
+# Should print: 1.3.4 (or current version)
+
+# 4. Update ~/.claude.json to use venv Python
+# See Fix 1 above
+```
+
+---
+
+### Fix 4: Wrong MCP Server Namespace
+
+**Error:**
+```
+Failed to reconnect to plugin:recall:recall
+```
+
+**Cause:** Using `"recall"` instead of `"plugin:recall:recall"` in `~/.claude.json`
+
+**Wrong:**
+```json
+{
+  "mcpServers": {
+    "recall": { ... }  // ❌ Wrong namespace
+  }
+}
+```
+
+**Correct:**
+```json
+{
+  "mcpServers": {
+    "plugin:recall:recall": { ... }  // ✅ Correct namespace
+  }
+}
+```
+
+**Fix:**
+```bash
+# Remove old "recall" entry if present
+jq 'del(.mcpServers.recall)' ~/.claude.json > /tmp/claude_updated.json
+mv /tmp/claude_updated.json ~/.claude.json
+
+# Add with correct namespace (see Fix 1)
+```
+
+---
+
+### Fix 5: Template Variables Not Expanded
+
+**Error:** Server fails to start
+
+**Cause:** `{{PLUGIN_DIR}}` or `{{HOME}}` not expanded to absolute paths
+
+**Wrong:**
+```json
+{
+  "command": "{{PLUGIN_DIR}}/.venv/bin/python"  // ❌ Not expanded
+}
+```
+
+**Correct:**
+```json
+{
+  "command": "/Users/username/.claude/plugins/recall@Recall/.venv/bin/python"  // ✅ Absolute path
+}
+```
+
+**Fix:** Use absolute paths (see [Fix 1](#fix-1-manual-mcp-server-configuration))
 
 ---
 
