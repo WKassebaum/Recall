@@ -1,426 +1,289 @@
-"""Storage mode migration tool with canary validation.
+"""Migrate Recall data between storage modes (embedded ↔ network)."""
 
-Migrate memories between embedded and network (Docker) Qdrant modes.
-"""
-
-import os
-import time
-from collections.abc import Callable
-from dataclasses import dataclass
-from pathlib import Path
+import sys
 
 import click
-from dotenv import load_dotenv
+from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+)
 
 from recall.backends.qdrant import QdrantBackend
-from recall.config.loader import load_config
-from recall.core.store import Chunk, UnifiedVectorStore
-from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
+
+console = Console()
 
 
-@dataclass
-class ModeMigrationStats:
-    """Track mode migration statistics."""
-
-    total_chunks: int = 0
-    migrated_chunks: int = 0
-    failed_chunks: int = 0
-    canary_sample_size: int = 0
-    canary_passed: bool = False
-    start_time: float = 0.0
-    end_time: float = 0.0
-
-    @property
-    def duration(self) -> float:
-        """Calculate migration duration in seconds."""
-        if self.end_time == 0.0:
-            return time.time() - self.start_time
-        return self.end_time - self.start_time
-
-    @property
-    def success_rate(self) -> float:
-        """Calculate success rate (0-1)."""
-        if self.total_chunks == 0:
-            return 0.0
-        return self.migrated_chunks / self.total_chunks
-
-
-class ModeMigrationError(Exception):
-    """Raised when mode migration fails."""
-
-    pass
-
-
-class ModeCanaryValidator:
-    """Validate migration on sample data before full mode migration."""
-
-    def __init__(
-        self,
-        sample_size: int = 10,
-        min_success_rate: float = 0.8,
-    ):
-        """Initialize canary validator.
-
-        Args:
-            sample_size: Number of chunks to test
-            min_success_rate: Minimum success rate to pass (0-1)
-        """
-        self.sample_size = sample_size
-        self.min_success_rate = min_success_rate
-
-    def validate(
-        self,
-        source_chunks: list[Chunk],
-        target_store: UnifiedVectorStore,
-        progress_callback: Callable[[str], None] | None = None,
-    ) -> tuple[bool, str]:
-        """Run canary validation on sample chunks.
-
-        Args:
-            source_chunks: Sample chunks to test
-            target_store: Target storage to test writes
-            progress_callback: Optional callback for progress updates
-
-        Returns:
-            Tuple of (passed, message)
-        """
-        if not source_chunks:
-            return False, "No chunks to validate"
-
-        sample = source_chunks[: self.sample_size]
-        if progress_callback:
-            progress_callback(f"🧪 Testing migration on {len(sample)} sample chunks...")
-
-        success_count = 0
-        for chunk in sample:
-            try:
-                # Test write to target store (with upsert to avoid duplicates)
-                test_chunk = Chunk(
-                    content=chunk.content,
-                    embedding=chunk.embedding,
-                    chunk_id=f"canary_{chunk.id}",
-                    metadata={**chunk.metadata, "canary_test": "true"},
-                )
-                target_store.upsert([test_chunk])
-
-                # Verify write by reading back
-                results = target_store.search(
-                    chunk.content[:50],  # Search with content prefix
-                    top_k=1,
-                    filter={"canary_test": "true"},
-                )
-
-                if results and results[0].content == chunk.content:
-                    success_count += 1
-
-            except Exception:
-                continue
-
-        success_rate = success_count / len(sample)
-
-        if success_rate >= self.min_success_rate:
-            return True, f"Canary passed: {success_rate:.1%} success rate"
-        else:
-            return (
-                False,
-                f"Canary failed: {success_rate:.1%} success rate "
-                f"(minimum: {self.min_success_rate:.1%})",
-            )
-
-
-class ModeMigrationTool:
-    """Migrate memories between embedded and network Qdrant modes."""
+class ModeMigration:
+    """Handle migration between embedded and network storage modes."""
 
     def __init__(
         self,
         source_mode: str,
         target_mode: str,
-        canary_size: int = 10,
-        batch_size: int = 100,
-        progress_callback: Callable[[str], None] | None = None,
-    ):
-        """Initialize mode migration tool.
-
-        Args:
-            source_mode: Current storage mode ("embedded" or "network")
-            target_mode: Target storage mode ("embedded" or "network")
-            canary_size: Number of chunks for canary validation
-            batch_size: Chunks to process per batch
-            progress_callback: Optional callback for progress updates
-        """
+        source_path: str | None = None,
+        source_host: str | None = None,
+        source_port: int | None = None,
+        target_path: str | None = None,
+        target_host: str | None = None,
+        target_port: int | None = None,
+    ) -> None:
         self.source_mode = source_mode
         self.target_mode = target_mode
-        self.canary_size = canary_size
-        self.batch_size = batch_size
-        self.progress_callback = progress_callback
 
-        self.stats = ModeMigrationStats()
-        self.stats.canary_sample_size = canary_size
-
-    def _log(self, message: str) -> None:
-        """Log message via callback or print."""
-        if self.progress_callback:
-            self.progress_callback(message)
+        # Create source backend
+        if source_mode == "embedded":
+            self.source_backend = QdrantBackend(path=source_path or "~/.recall/qdrant")
         else:
-            click.echo(message)
+            self.source_backend = QdrantBackend(
+                host=source_host or "localhost", port=source_port or 6333
+            )
 
-    def migrate(self, dry_run: bool = False) -> ModeMigrationStats:
-        """Execute mode migration with canary validation.
+        # Create target backend
+        if target_mode == "embedded":
+            self.target_backend = QdrantBackend(path=target_path or "~/.recall/qdrant-new")
+        else:
+            self.target_backend = QdrantBackend(
+                host=target_host or "localhost", port=target_port or 6333
+            )
 
-        Args:
-            dry_run: If True, only validate without migrating
+    def migrate(self, dry_run: bool = False) -> dict[str, int]:
+        """Migrate all data from source to target mode."""
+        console.print("\n[bold]Starting mode migration...[/bold]")
+        console.print(f"Source: {self.source_mode}")
+        console.print(f"Target: {self.target_mode}")
 
-        Returns:
-            Migration statistics
+        if dry_run:
+            console.print("[yellow]DRY RUN MODE - No data will be modified[/yellow]\n")
 
-        Raises:
-            ModeMigrationError: If migration fails
-        """
-        self.stats.start_time = time.time()
-
+        # Get all collections from source
         try:
-            # 1. Initialize components
-            self._log("🔧 Initializing mode migration...")
-            source_store, target_store = self._initialize_stores()
-
-            # 2. Load source chunks
-            self._log(f"📦 Loading chunks from {self.source_mode} mode...")
-            source_chunks = self._load_source_chunks(source_store)
-            self.stats.total_chunks = len(source_chunks)
-            self._log(f"Found {self.stats.total_chunks} chunks to migrate")
-
-            if self.stats.total_chunks == 0:
-                raise ModeMigrationError("No chunks found in source mode")
-
-            # 3. Canary validation
-            canary_passed, canary_message = self._run_canary_validation(source_chunks, target_store)
-            self._log(f"{'✅' if canary_passed else '❌'} {canary_message}")
-
-            if not canary_passed:
-                raise ModeMigrationError(f"Canary validation failed: {canary_message}")
-
-            self.stats.canary_passed = True
-
-            if dry_run:
-                self._log("🏁 Dry run complete - no data migrated")
-                self.stats.end_time = time.time()
-                return self.stats
-
-            # 4. Full migration
-            self._log(f"🚀 Starting full migration ({self.stats.total_chunks} chunks)...")
-            self._migrate_chunks(source_chunks, target_store)
-
-            self.stats.end_time = time.time()
-            self._log(
-                f"✅ Migration complete: {self.stats.migrated_chunks}/{self.stats.total_chunks} "
-                f"chunks ({self.stats.duration:.1f}s)"
-            )
-
-            return self.stats
-
+            source_collections = self.source_backend.client.get_collections().collections
         except Exception as e:
-            self.stats.end_time = time.time()
-            raise ModeMigrationError(f"Migration failed: {e}") from e
+            console.print(f"[red]❌ Failed to connect to source: {e}[/red]")
+            raise
 
-    def _initialize_stores(self) -> tuple[UnifiedVectorStore, UnifiedVectorStore]:
-        """Initialize source and target storage backends."""
-        # Load config and environment
-        config = load_config("config.yaml")
-        env_file = Path.home() / ".recall" / ".env"
-        if env_file.exists():
-            load_dotenv(env_file)
+        if not source_collections:
+            console.print("[yellow]⚠️  No collections found in source[/yellow]")
+            return {"total": 0, "migrated": 0, "failed": 0}
 
-        # Get embedder (same for both source and target)
-        embedder_model = os.environ.get("RECALL_EMBEDDER_MODEL", config.embedder_model)
-        embedder = SentenceTransformerEmbedder(embedder_model)
+        console.print(f"Found {len(source_collections)} collections to migrate\n")
 
-        # Initialize source backend
-        if self.source_mode == "network":
-            source_host = os.environ.get("RECALL_QDRANT_HOST", config.qdrant_host)
-            source_port = int(os.environ.get("RECALL_QDRANT_PORT", config.qdrant_port))
-            source_backend = QdrantBackend(host=source_host, port=source_port)
-        else:  # embedded
-            source_path = os.environ.get("RECALL_QDRANT_PATH", "~/.recall/qdrant")
-            source_backend = QdrantBackend(path=source_path)
+        total_points = 0
+        migrated_points = 0
+        failed_points = 0
 
-        # Initialize target backend
-        if self.target_mode == "network":
-            # For network target, prompt user for host/port
-            target_host = click.prompt("Target Qdrant host", default="localhost", type=str)
-            target_port = click.prompt("Target Qdrant port", default=6333, type=int)
-            target_backend = QdrantBackend(host=target_host, port=target_port)
-        else:  # embedded
-            target_path = click.prompt(
-                "Target Qdrant path",
-                default="~/.recall/qdrant-migrated",
-                type=str,
-            )
-            target_backend = QdrantBackend(path=target_path)
+        # Migrate each collection
+        for collection in source_collections:
+            collection_name = collection.name
+            console.print(f"\n[bold cyan]Migrating collection: {collection_name}[/bold cyan]")
 
-        # Create stores
-        source_store = UnifiedVectorStore(backend=source_backend)
-        source_store.set_embedder(embedder)
-
-        target_store = UnifiedVectorStore(backend=target_backend)
-        target_store.set_embedder(embedder)
-
-        return source_store, target_store
-
-    def _load_source_chunks(self, source_store: UnifiedVectorStore) -> list[Chunk]:
-        """Load all chunks from source store."""
-        total_chunks = source_store.count()
-        if total_chunks == 0:
-            return []
-
-        # Use search to retrieve chunks
-        results = source_store.search("", top_k=total_chunks)
-
-        chunks = []
-        for result in results:
-            chunk = Chunk(
-                content=result.content,
-                chunk_id=result.chunk_id,
-                embedding=result.embedding if hasattr(result, "embedding") else None,
-                metadata=result.metadata,
-            )
-            chunks.append(chunk)
-
-        return chunks
-
-    def _run_canary_validation(
-        self, source_chunks: list[Chunk], target_store: UnifiedVectorStore
-    ) -> tuple[bool, str]:
-        """Run canary validation on sample chunks."""
-        validator = ModeCanaryValidator(
-            sample_size=self.canary_size,
-            min_success_rate=0.8,
-        )
-
-        return validator.validate(source_chunks, target_store, self.progress_callback)
-
-    def _migrate_chunks(
-        self,
-        source_chunks: list[Chunk],
-        target_store: UnifiedVectorStore,
-    ) -> None:
-        """Migrate all chunks to target store."""
-        # Process in batches
-        for i in range(0, len(source_chunks), self.batch_size):
-            batch = source_chunks[i : i + self.batch_size]
-            self._migrate_batch(batch, target_store)
-
-    def _migrate_batch(
-        self,
-        batch: list[Chunk],
-        target_store: UnifiedVectorStore,
-    ) -> None:
-        """Migrate a batch of chunks."""
-        for chunk in batch:
             try:
-                # Upsert chunk to target (preserves embeddings)
-                target_store.upsert([chunk])
-                self.stats.migrated_chunks += 1
+                # Get collection info
+                collection_info = self.source_backend.client.get_collection(collection_name)
+                vector_size = collection_info.config.params.vectors.size  # type: ignore
+                distance = collection_info.config.params.vectors.distance  # type: ignore
+
+                console.print(f"  Vector size: {vector_size}D")
+                console.print(f"  Points count: {collection_info.points_count}")
+
+                if dry_run:
+                    console.print("  [dim]Skipping (dry run)[/dim]")
+                    total_points += collection_info.points_count
+                    migrated_points += collection_info.points_count
+                    continue
+
+                # Create collection in target
+                from qdrant_client.models import VectorParams
+
+                try:
+                    self.target_backend.client.create_collection(
+                        collection_name=collection_name,
+                        vectors_config=VectorParams(size=vector_size, distance=distance),
+                    )
+                    console.print("  ✅ Created target collection")
+                except Exception as e:
+                    if "already exists" in str(e).lower():
+                        console.print("  ⚠️  Target collection already exists")
+                    else:
+                        raise
+
+                # Scroll through all points
+                offset = None
+                batch_size = 100
+
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TaskProgressColumn(),
+                    console=console,
+                ) as progress:
+                    task = progress.add_task(
+                        f"  Migrating {collection_name}...",
+                        total=collection_info.points_count,
+                    )
+
+                    while True:
+                        # Scroll batch
+                        records, next_offset = self.source_backend.client.scroll(
+                            collection_name=collection_name,
+                            limit=batch_size,
+                            offset=offset,
+                            with_payload=True,
+                            with_vectors=True,
+                        )
+
+                        if not records:
+                            break
+
+                        total_points += len(records)
+
+                        # Upload batch to target
+                        try:
+                            from qdrant_client.models import PointStruct
+
+                            points = [
+                                PointStruct(
+                                    id=record.id, vector=record.vector, payload=record.payload  # type: ignore
+                                )
+                                for record in records
+                            ]
+
+                            self.target_backend.client.upsert(
+                                collection_name=collection_name, points=points
+                            )
+
+                            migrated_points += len(records)
+                            progress.update(task, advance=len(records))
+
+                        except Exception as e:
+                            console.print(f"  [red]❌ Failed to migrate batch: {e}[/red]")
+                            failed_points += len(records)
+
+                        # Check if we're done
+                        if next_offset is None:
+                            break
+
+                        offset = next_offset
+
+                console.print(f"  ✅ Migrated {migrated_points} points from {collection_name}")
 
             except Exception as e:
-                self.stats.failed_chunks += 1
-                self._log(f"⚠️  Failed to migrate chunk {chunk.id}: {e}")
+                console.print(f"  [red]❌ Failed to migrate collection: {e}[/red]")
+                failed_points += total_points - migrated_points
 
-            # Progress update every 10 chunks
-            if self.stats.migrated_chunks % 10 == 0:
-                progress = (self.stats.migrated_chunks / self.stats.total_chunks) * 100
-                self._log(
-                    f"Progress: {progress:.1f}% ({self.stats.migrated_chunks}/{self.stats.total_chunks})"
-                )
+        # Summary
+        console.print("\n" + "─" * 70)
+        console.print("\n[bold green]Migration Complete![/bold green]\n")
+        console.print(f"Total points: {total_points}")
+        console.print(f"Migrated: {migrated_points}")
+        console.print(f"Failed: {failed_points}")
+
+        if not dry_run and failed_points == 0:
+            console.print(
+                "\n[bold]Next steps:[/bold]\n"
+                "1. Verify data in target mode\n"
+                "2. Update ~/.recall/.env to use new mode\n"
+                "3. Restart Claude Code\n"
+            )
+
+        return {"total": total_points, "migrated": migrated_points, "failed": failed_points}
 
 
 @click.command()
 @click.option(
     "--from-mode",
     "-f",
+    type=click.Choice(["embedded", "network"]),
     required=True,
-    type=click.Choice(["embedded", "network"], case_sensitive=False),
     help="Source storage mode",
 )
 @click.option(
     "--to-mode",
     "-t",
+    type=click.Choice(["embedded", "network"]),
     required=True,
-    type=click.Choice(["embedded", "network"], case_sensitive=False),
     help="Target storage mode",
 )
 @click.option(
-    "--canary-size",
-    "-c",
-    type=int,
-    default=10,
-    help="Number of chunks for canary validation",
+    "--source-path", help="Source path (for embedded mode)", default="~/.recall/qdrant"
 )
+@click.option("--source-host", help="Source host (for network mode)", default="localhost")
+@click.option("--source-port", help="Source port (for network mode)", type=int, default=6333)
 @click.option(
-    "--batch-size",
-    "-b",
-    type=int,
-    default=100,
-    help="Chunks to process per batch",
+    "--target-path", help="Target path (for embedded mode)", default="~/.recall/qdrant-new"
 )
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Run canary validation only, don't migrate",
-)
+@click.option("--target-host", help="Target host (for network mode)", default="localhost")
+@click.option("--target-port", help="Target port (for network mode)", type=int, default=6333)
+@click.option("--dry-run", is_flag=True, help="Test migration without moving data")
 def migrate_mode(
     from_mode: str,
     to_mode: str,
-    canary_size: int,
-    batch_size: int,
+    source_path: str,
+    source_host: str,
+    source_port: int,
+    target_path: str,
+    target_host: str,
+    target_port: int,
     dry_run: bool,
 ) -> None:
-    """Migrate memories between embedded and network Qdrant modes.
+    """Migrate Recall data between storage modes.
 
     Examples:
-        recall migrate-mode -f embedded -t network
-        recall migrate-mode -f network -t embedded --dry-run
+        # Embedded → Network
+        recall migrate-mode -f embedded -t network --target-port 6337
+
+        # Network → Embedded
+        recall migrate-mode -f network -t embedded
+
+        # Dry run (test without moving data)
+        recall migrate-mode -f embedded -t network --dry-run
     """
-    click.echo("🔄 Starting storage mode migration...\n")
-    click.echo(f"Source mode: {from_mode}")
-    click.echo(f"Target mode: {to_mode}")
-    click.echo(f"Canary size: {canary_size}")
-    click.echo(f"Batch size: {batch_size}")
-    click.echo(f"Dry run: {dry_run}\n")
+    if from_mode == to_mode:
+        console.print("[red]❌ Source and target modes are the same[/red]")
+        sys.exit(1)
 
-    # Warn if migrating from network to embedded
-    if from_mode == "network" and to_mode == "embedded":
-        click.echo("⚠️  WARNING: Embedded mode has limitations:")
-        click.echo("   - ONE project at a time only")
-        click.echo("   - File locking prevents concurrent access")
-        click.echo("   - Not recommended for multi-project workflows\n")
-        if not click.confirm("Continue with migration to embedded mode?"):
-            raise click.Abort()
+    # Confirm migration
+    console.print("\n[bold yellow]⚠️  Migration Warning[/bold yellow]")
+    console.print(
+        f"\nThis will copy all data from {from_mode} mode to {to_mode} mode.\n"
+        f"Source data will NOT be deleted (safe operation).\n"
+    )
 
+    if not dry_run and not click.confirm("Continue with migration?"):
+        console.print("Migration cancelled.")
+        sys.exit(0)
+
+    # Create migration instance
+    migration = ModeMigration(
+        source_mode=from_mode,
+        target_mode=to_mode,
+        source_path=source_path,
+        source_host=source_host,
+        source_port=source_port,
+        target_path=target_path,
+        target_host=target_host,
+        target_port=target_port,
+    )
+
+    # Run migration
     try:
-        tool = ModeMigrationTool(
-            source_mode=from_mode,
-            target_mode=to_mode,
-            canary_size=canary_size,
-            batch_size=batch_size,
-            progress_callback=click.echo,
-        )
+        stats = migration.migrate(dry_run=dry_run)
 
-        stats = tool.migrate(dry_run=dry_run)
+        if stats["failed"] > 0:
+            sys.exit(1)
 
-        # Display final stats
-        click.echo("\n📊 Migration Statistics:")
-        click.echo(f"Total chunks: {stats.total_chunks}")
-        click.echo(f"Migrated: {stats.migrated_chunks}")
-        click.echo(f"Failed: {stats.failed_chunks}")
-        click.echo(f"Success rate: {stats.success_rate:.1%}")
-        click.echo(f"Duration: {stats.duration:.1f}s")
-        click.echo(f"Canary passed: {'✅' if stats.canary_passed else '❌'}")
+    except Exception as e:
+        console.print(f"\n[red]❌ Migration failed: {e}[/red]")
+        import traceback
 
-        if not dry_run:
-            click.echo("\n✅ Migration complete!")
-            click.echo(f"💡 Next step: Update ~/.recall/.env to use '{to_mode}' mode")
-            click.echo("   Then restart Claude Code (Cmd/Ctrl + Q)")
+        traceback.print_exc()
+        sys.exit(1)
 
-    except ModeMigrationError as e:
-        click.echo(f"\n❌ Migration failed: {e}", err=True)
-        raise click.Abort() from None
+
+if __name__ == "__main__":
+    migrate_mode()
