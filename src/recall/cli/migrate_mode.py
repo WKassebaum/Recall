@@ -92,8 +92,9 @@ class ModeMigration:
 
                 if dry_run:
                     console.print("  [dim]Skipping (dry run)[/dim]")
-                    total_points += collection_info.points_count
-                    migrated_points += collection_info.points_count
+                    points_count = collection_info.points_count or 0
+                    total_points += points_count
+                    migrated_points += points_count
                     continue
 
                 # Create collection in target
