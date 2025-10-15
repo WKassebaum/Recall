@@ -32,8 +32,11 @@ Recall is a long-term semantic memory system that addresses context window limit
 ### Prerequisites
 
 - Python 3.10+
+- **Virtual environment** (REQUIRED for modern Python - see [INSTALLATION.md](INSTALLATION.md#troubleshooting) for PEP 668 details)
 - Claude Code CLI or compatible MCP client
 - Docker (optional, required for network mode multi-project support)
+
+> **📖 Detailed Installation Guide:** See [INSTALLATION.md](INSTALLATION.md) for platform-specific instructions, troubleshooting, and common issues.
 
 ### Installation via Plugin (Recommended) ⭐
 

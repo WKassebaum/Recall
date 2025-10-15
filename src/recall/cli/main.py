@@ -11,6 +11,7 @@ import click
 from recall.backends.qdrant import QdrantBackend
 from recall.chunking.factory import ChunkerFactory
 from recall.cli.cleanup import cleanup_test_data
+from recall.cli.doctor import doctor
 from recall.cli.migrate import migrate_embeddings
 from recall.cli.migrate_mode import migrate_mode
 from recall.cli.setup import setup
@@ -205,9 +206,10 @@ def setup_qdrant() -> None:
 cli.add_command(migrate_embeddings, name="migrate")
 cli.add_command(migrate_mode, name="migrate-mode")
 
-# Add setup and cleanup commands to CLI group
+# Add setup, cleanup, and diagnostic commands to CLI group
 cli.add_command(setup, name="setup")
 cli.add_command(cleanup_test_data, name="cleanup")
+cli.add_command(doctor, name="doctor")
 
 
 if __name__ == "__main__":
