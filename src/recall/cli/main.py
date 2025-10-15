@@ -11,6 +11,7 @@ import click
 from recall.backends.qdrant import QdrantBackend
 from recall.chunking.factory import ChunkerFactory
 from recall.cli.migrate import migrate_embeddings
+from recall.cli.migrate_mode import migrate_mode
 from recall.cli.setup import setup
 from recall.config.loader import load_config
 from recall.core.store import SearchResult, UnifiedVectorStore
@@ -199,8 +200,9 @@ def setup_qdrant() -> None:
     sys.exit(1)
 
 
-# Add migration command to CLI group
+# Add migration commands to CLI group
 cli.add_command(migrate_embeddings, name="migrate")
+cli.add_command(migrate_mode, name="migrate-mode")
 
 # Add setup command to CLI group
 cli.add_command(setup, name="setup")
