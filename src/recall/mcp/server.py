@@ -358,6 +358,183 @@ async def memory_stats() -> str:
     )
 
 
+@mcp.tool()
+async def diagnose_installation() -> str:
+    """
+    Diagnose Recall installation and configuration issues.
+
+    Performs comprehensive health checks on:
+    - MCP server configuration in ~/.claude.json
+    - Python interpreter and virtual environment
+    - Recall package installation
+    - Qdrant connectivity (embedded or network mode)
+    - Configuration file validity
+    - Embedding model availability
+
+    Returns:
+        Diagnostic report with check results and fix suggestions
+    """
+    import json
+    from importlib.metadata import version
+
+    checks = []
+    issues = []
+    warnings_list = []
+
+    # Check 1: MCP server configuration in ~/.claude.json
+    checks.append("🔍 Checking MCP server configuration...")
+    claude_config = Path.home() / ".claude.json"
+
+    if not claude_config.exists():
+        issues.append("❌ ~/.claude.json not found")
+        checks.append("   ❌ MCP configuration file missing")
+    else:
+        try:
+            with open(claude_config) as f:
+                config_data = json.load(f)
+
+            # Check for plugin:recall:recall namespace
+            if "plugin:recall:recall" in config_data.get("mcpServers", {}):
+                checks.append("   ✅ MCP server registered (plugin:recall:recall)")
+
+                # Verify configuration
+                recall_config = config_data["mcpServers"]["plugin:recall:recall"]
+                python_cmd = recall_config.get("command", "")
+
+                # Check if using venv Python
+                if ".venv/bin/python" in python_cmd or "venv/bin/python" in python_cmd:
+                    checks.append("   ✅ Using virtual environment Python")
+                elif python_cmd in ["python", "python3"]:
+                    warnings_list.append("⚠️  Using system Python instead of venv")
+                    checks.append("   ⚠️  System Python (should use venv)")
+
+                # Check Python path exists
+                if Path(python_cmd).exists():
+                    checks.append(f"   ✅ Python exists: {python_cmd}")
+                else:
+                    issues.append(f"❌ Python not found: {python_cmd}")
+                    checks.append("   ❌ Python path invalid")
+
+            elif "recall" in config_data.get("mcpServers", {}):
+                warnings_list.append(
+                    "⚠️  Wrong namespace: 'recall' should be 'plugin:recall:recall'"
+                )
+                checks.append("   ⚠️  Wrong MCP server namespace")
+            else:
+                issues.append("❌ Recall MCP server not registered")
+                checks.append("   ❌ MCP server not in ~/.claude.json")
+
+        except Exception as e:
+            issues.append(f"❌ Error reading ~/.claude.json: {e}")
+            checks.append(f"   ❌ Config read error: {e}")
+
+    # Check 2: Python version
+    checks.append("\n🔍 Checking Python version...")
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+        checks.append(f"   ✅ Python {python_version} (compatible)")
+    else:
+        issues.append(f"❌ Python {python_version} (requires 3.10+)")
+        checks.append(f"   ❌ Python {python_version} too old")
+
+    # Check 3: Virtual environment
+    checks.append("\n🔍 Checking virtual environment...")
+    in_venv = hasattr(sys, "real_prefix") or (
+        hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+    )
+    if in_venv:
+        checks.append(f"   ✅ Virtual environment: {sys.prefix}")
+    else:
+        warnings_list.append("⚠️  Not in virtual environment (recommended)")
+        checks.append("   ⚠️  No virtual environment detected")
+
+    # Check 4: Recall package installation
+    checks.append("\n🔍 Checking Recall package...")
+    try:
+        recall_version = version("recall")
+        checks.append(f"   ✅ Recall v{recall_version} installed")
+
+        # Verify imports work
+        import recall  # noqa: F401
+
+        checks.append("   ✅ Package imports successfully")
+    except Exception as e:
+        issues.append(f"❌ Recall package error: {e}")
+        checks.append("   ❌ Package import failed")
+
+    # Check 5: Qdrant connectivity
+    checks.append("\n🔍 Checking Qdrant connectivity...")
+    try:
+        # Try to get components (this will initialize Qdrant connection)
+        config, _, embedder, store = get_components()
+
+        # Test connection by counting
+        total_chunks = store.count()
+        checks.append(f"   ✅ Qdrant connected: {total_chunks} chunks")
+
+        # Check mode
+        backend = store.backend
+        assert backend is not None
+        if backend.mode == "embedded":
+            checks.append(f"   ✅ Mode: embedded ({backend.path})")
+        else:
+            checks.append(f"   ✅ Mode: network ({backend.host}:{backend.port})")
+
+    except Exception as e:
+        issues.append(f"❌ Qdrant connection failed: {e}")
+        checks.append("   ❌ Cannot connect to Qdrant")
+
+    # Check 6: Configuration file
+    checks.append("\n🔍 Checking configuration files...")
+    env_file = Path.home() / ".recall" / ".env"
+    if env_file.exists():
+        checks.append(f"   ✅ Configuration: {env_file}")
+    else:
+        warnings_list.append("⚠️  No ~/.recall/.env file (using defaults)")
+        checks.append("   ⚠️  No .env configuration")
+
+    # Check 7: Embedding model
+    checks.append("\n🔍 Checking embedding model...")
+    try:
+        config, _, embedder, _ = get_components()
+        checks.append(f"   ✅ Model: {embedder.name}")
+        checks.append(f"   ✅ Dimension: {embedder.dimension}D")
+    except Exception as e:
+        issues.append(f"❌ Embedder error: {e}")
+        checks.append("   ❌ Model load failed")
+
+    # Build final report
+    output = ["🏥 Recall Installation Diagnostics", "=" * 40, ""]
+    output.extend(checks)
+    output.append("")
+    output.append("=" * 40)
+
+    if not issues and not warnings_list:
+        output.append("✅ All checks passed!")
+        output.append("")
+        output.append("Your Recall installation is healthy and ready to use.")
+    elif issues:
+        output.append(f"❌ {len(issues)} critical issue(s) found:")
+        output.append("")
+        for issue in issues:
+            output.append(f"  {issue}")
+        output.append("")
+        output.append("📖 See INSTALLATION.md for troubleshooting:")
+        output.append(
+            "   - Plugin installation: INSTALLATION.md#plugin-installation-troubleshooting"
+        )
+        output.append("   - Manual setup: INSTALLATION.md#manual-installation")
+    elif warnings_list:
+        output.append(f"⚠️  {len(warnings_list)} warning(s) found:")
+        output.append("")
+        for warning in warnings_list:
+            output.append(f"  {warning}")
+        output.append("")
+        output.append("Recall should work but some features may be limited.")
+
+    return "\n".join(output)
+
+
 if __name__ == "__main__":
     # Run the MCP server
     mcp.run()

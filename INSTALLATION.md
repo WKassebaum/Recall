@@ -136,13 +136,81 @@ Choose between:
 /mcp
 ```
 
-**Expected:** Shows `plugin:recall:recall` with 3 tools (ingest_memory, recall_memory, memory_stats)
+**Expected:** Shows `plugin:recall:recall` with 4 tools (ingest_memory, recall_memory, memory_stats, diagnose_installation)
 
 **If you see "Failed to reconnect to plugin:recall:recall"**, see [Plugin Installation Troubleshooting](#plugin-installation-troubleshooting) below.
+
+### Step 8: Run Diagnostics (Optional)
+
+```bash
+# In Claude Code, use the diagnose tool
+mcp__recall__diagnose_installation()
+```
+
+This will check:
+- ✅ MCP server configuration in ~/.claude.json
+- ✅ Python version compatibility
+- ✅ Virtual environment setup
+- ✅ Recall package installation
+- ✅ Qdrant connectivity
+- ✅ Configuration files
+- ✅ Embedding model availability
+
+**Sample output:**
+```
+🏥 Recall Installation Diagnostics
+========================================
+
+🔍 Checking MCP server configuration...
+   ✅ MCP server registered (plugin:recall:recall)
+   ✅ Using virtual environment Python
+   ✅ Python exists: /path/to/.venv/bin/python
+
+🔍 Checking Python version...
+   ✅ Python 3.13.7 (compatible)
+
+🔍 Checking virtual environment...
+   ✅ Virtual environment: /path/to/.venv
+
+🔍 Checking Recall package...
+   ✅ Recall v1.3.5 installed
+   ✅ Package imports successfully
+
+🔍 Checking Qdrant connectivity...
+   ✅ Qdrant connected: 0 chunks
+   ✅ Mode: embedded (/Users/username/.recall/qdrant)
+
+🔍 Checking configuration files...
+   ✅ Configuration: /Users/username/.recall/.env
+
+🔍 Checking embedding model...
+   ✅ Model: Snowflake/snowflake-arctic-embed-m
+   ✅ Dimension: 768D
+
+========================================
+✅ All checks passed!
+
+Your Recall installation is healthy and ready to use.
+```
 
 ---
 
 ## Plugin Installation Troubleshooting
+
+### Quick Diagnosis Tool
+
+**Before manual troubleshooting, run the diagnostic tool to identify issues:**
+
+```bash
+# In Claude Code (if MCP server is running)
+mcp__recall__diagnose_installation()
+```
+
+This will automatically check all common issues and provide specific fix recommendations.
+
+**If MCP server isn't running yet**, proceed with manual troubleshooting below.
+
+---
 
 ### Known Issue: MCP Server Not Auto-Registered ⚠️
 

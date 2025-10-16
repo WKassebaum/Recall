@@ -190,9 +190,10 @@ What it should do:
 
 ### Priority 0 (Critical - Plugin Installation)
 
-#### 5a. Post-Install Hook for Plugin System ⚠️ **CRITICAL**
+#### 5a. Post-Install Hook for Plugin System ⚠️ **CRITICAL** ✅ COMPLETED
+**Status:** ✅ Completed (v1.3.5)
 **Priority:** Critical
-**Effort:** 6-8 hours
+**Effort:** 6-8 hours → Actual: 8 hours
 **Impact:** Eliminates manual configuration for plugin users
 
 **Problem:** Plugin installation doesn't automatically:
@@ -200,87 +201,118 @@ What it should do:
 - Install dependencies
 - Register MCP server in ~/.claude.json
 
-**Solution Options:**
+**Solution Implemented:**
 
-**Option A: Post-Install Script**
-Create `scripts/plugin-setup.sh` that runs after plugin installation:
+**✅ Post-Install Script (`scripts/plugin-setup.sh`)**
+- Automated venv creation and dependency installation
+- Automatic MCP server registration in ~/.claude.json
+- Comprehensive error handling and validation
+- Clear user feedback with next steps
+- Backup of existing configuration
+- Exit codes for CI/CD integration
+
+**Features:**
+- Python version detection (3.10+)
+- Virtual environment setup
+- Dependency installation with progress indication
+- MCP server configuration with jq
+- Configuration verification
+- Graceful fallback if jq not available
+
+**Files Created:**
+- `scripts/plugin-setup.sh` (new, 200+ lines, executable)
+- `.claude-plugin/plugin.json` (updated with postInstall hook)
+
+**Usage:**
 ```bash
-#!/bin/bash
-# Auto-run by Claude Code plugin system
-
-PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-
-# 1. Create venv
-python3 -m venv "$PLUGIN_DIR/.venv"
-source "$PLUGIN_DIR/.venv/bin/activate"
-pip install -e "$PLUGIN_DIR" --quiet
-
-# 2. Add to ~/.claude.json with correct namespace
-jq '.mcpServers."plugin:recall:recall" = {...}' ~/.claude.json > /tmp/claude_updated.json
-mv /tmp/claude_updated.json ~/.claude.json
-
-echo "✅ Recall MCP server configured"
+# Automatically runs after: /plugin install recall@Recall
+# Or manually: ./scripts/plugin-setup.sh
 ```
 
-**Option B: Create `/recall-setup` Slash Command**
-Let users run setup manually after plugin install:
-```bash
-/plugin marketplace add WKassebaum/Recall
-/recall-setup  # User runs this to complete setup
-```
-
-**Recommendation:** Implement both options for maximum compatibility
-
-**Files Affected:**
-- `scripts/plugin-setup.sh` (new)
-- `.claude-plugin/plugin.json` (add postInstall hook)
-- `src/recall/commands/setup.py` (new slash command)
+**Documentation:**
+- INSTALLATION.md (post-install process documented)
+- .claude-plugin/README.md (expected behavior documented)
 
 ---
 
-#### 5b. /recall-diagnose Diagnostic Slash Command
+#### 5b. diagnose_installation MCP Tool ✅ COMPLETED
+**Status:** ✅ Completed (v1.3.5)
 **Priority:** High
-**Effort:** 3-4 hours
+**Effort:** 3-4 hours → Actual: 3 hours
+**Impact:** Users can easily diagnose and fix installation issues
 
 **Problem:** Users can't easily diagnose plugin installation issues
 
-**Solution:**
-Create `/recall-diagnose` command that checks:
-- MCP server in ~/.claude.json (correct namespace)
-- Virtual environment exists
-- Dependencies installed
-- Qdrant connectivity
-- Configuration validity
+**Solution Implemented:**
 
-**Implementation:**
-```python
-# src/recall/commands/diagnose.py
-@mcp.tool()
-async def diagnose() -> str:
-    """Diagnose Recall installation issues."""
-    checks = []
+**✅ MCP Tool `diagnose_installation()`**
+Comprehensive health checks:
+1. ✅ MCP server configuration in ~/.claude.json
+2. ✅ Correct namespace (plugin:recall:recall)
+3. ✅ Python version compatibility (3.10+)
+4. ✅ Virtual environment detection
+5. ✅ Recall package installation and imports
+6. ✅ Qdrant connectivity (embedded or network)
+7. ✅ Configuration files (~/.recall/.env)
+8. ✅ Embedding model availability
 
-    # 1. Check ~/.claude.json
-    # 2. Check Python path
-    # 3. Check dependencies
-    # 4. Check Qdrant
-    # 5. Provide fix suggestions
+**Features:**
+- Detailed check-by-check output
+- Issue categorization (critical vs warnings)
+- Actionable fix recommendations
+- Links to documentation sections
+- Works for both plugin and manual installations
 
-    return "\n".join(checks)
+**Usage:**
+```bash
+# In Claude Code
+mcp__recall__diagnose_installation()
 ```
 
-**Expected Output:**
+**Sample Output:**
 ```
-🔍 Recall Installation Diagnostics
+🏥 Recall Installation Diagnostics
+========================================
 
-✅ MCP server in ~/.claude.json
-✅ Python exists: /path/to/.venv/bin/python
-✅ Recall package: v1.3.5
-❌ Qdrant connection failed
-   Fix: docker run -d -p 6333:6333 qdrant/qdrant
+🔍 Checking MCP server configuration...
+   ✅ MCP server registered (plugin:recall:recall)
+   ✅ Using virtual environment Python
+   ✅ Python exists: /path/to/.venv/bin/python
 
-Run /recall-fix to auto-repair issues
+🔍 Checking Python version...
+   ✅ Python 3.13.7 (compatible)
+
+🔍 Checking virtual environment...
+   ✅ Virtual environment: /path/to/.venv
+
+🔍 Checking Recall package...
+   ✅ Recall v1.3.5 installed
+   ✅ Package imports successfully
+
+🔍 Checking Qdrant connectivity...
+   ✅ Qdrant connected: 37 chunks
+   ✅ Mode: network (localhost:6337)
+
+🔍 Checking configuration files...
+   ✅ Configuration: /Users/username/.recall/.env
+
+🔍 Checking embedding model...
+   ✅ Model: Snowflake/snowflake-arctic-embed-m
+   ✅ Dimension: 768D
+
+========================================
+✅ All checks passed!
+
+Your Recall installation is healthy and ready to use.
 ```
+
+**Files Updated:**
+- `src/recall/mcp/server.py` (new diagnose_installation tool, 150+ lines)
+- `INSTALLATION.md` (documented usage and sample output)
+
+**Documentation:**
+- INSTALLATION.md (added "Quick Diagnosis Tool" section)
+- Added to verification steps in installation guide
 
 ---
 
