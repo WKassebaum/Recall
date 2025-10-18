@@ -20,6 +20,93 @@ A long-term memory system for coding agents that addresses context window limita
 
 **Implementation Philosophy:** Quality-first, continuous testing, technical debt prevention
 
+## Version Management
+
+**Single Source of Truth:** `src/recall/__version__.py`
+
+The project uses a unified version strategy to prevent version number drift:
+
+- **Canonical Version**: `src/recall/__version__.py` contains `__version__ = "X.Y.Z"`
+- **Dynamic Import**: `pyproject.toml` uses `dynamic = ["version"]` with setuptools
+- **Auto-Sync Script**: `scripts/sync-version.sh` syncs version to `.claude-plugin/plugin.json`
+
+**Updating Version:**
+```bash
+# 1. Edit src/recall/__init__.py
+__version__ = "1.4.0"  # Update this line
+
+# 2. Run sync script (syncs to plugin.json)
+./scripts/sync-version.sh
+
+# 3. Build package (pyproject.toml picks up version automatically)
+pip install -e .
+```
+
+**Version reflects latest git release tag** - After creating a git tag, update `src/recall/__init__.py` to match.
+
+## Docker Reliability & Multi-Project Setup
+
+**Status:** ✅ Reliable (v1.4.0) - Named volumes + WAL tuning implemented
+
+### Current Setup (Reliable)
+
+```
+Recall MCP → Qdrant Docker Container → Named Volume (recall-qdrant-data)
+                                        ↓
+                                Docker-managed storage
+                                (No macOS fsync issues)
+```
+
+**Key Improvements (2025-10-18):**
+- ✅ **Named volumes** instead of bind mounts (eliminates macOS file descriptor corruption)
+- ✅ **WAL tuning** via `qdrant-config.yaml` (512MB buffer, less frequent fsyncs)
+- ✅ **Performance mode** for batched writes
+- ✅ **Health checks** to detect corruption early
+- ✅ **Multi-project support** (4 projects using shared container)
+
+### Quick Commands
+
+```bash
+# Start Qdrant (reliable mode)
+cd /Users/wrk/WorkDev/MCP-Dev/SemVecMem
+docker-compose up -d
+
+# Check health
+docker ps --filter "name=recall-qdrant-6337"
+curl http://localhost:6337/health
+
+# Backup (do this before major operations!)
+docker run --rm -v recall-qdrant-data:/data -v $(pwd):/backup alpine tar czf /backup/recall-backup-$(date +%Y%m%d_%H%M%S).tar.gz /data
+
+# Restore from backup
+docker-compose down
+docker volume rm recall-qdrant-data
+docker volume create recall-qdrant-data
+docker run --rm -v recall-qdrant-data:/data -v $(pwd):/backup alpine tar xzf /backup/recall-backup-YYYYMMDD_HHMMSS.tar.gz -C /
+docker-compose up -d
+
+# Stop Qdrant
+docker-compose down  # Keeps data
+# docker-compose down -v  # WARNING: Deletes all data!
+```
+
+### Why Named Volumes?
+
+**Previous setup (bind mounts - UNRELIABLE):**
+- ❌ macOS file descriptor translation issues
+- ❌ osxfs/virtiofs fsync problems
+- ❌ WAL corruption during heavy writes
+- ❌ "Bad file descriptor (os error 9)" crashes
+
+**Current setup (named volumes - RELIABLE):**
+- ✅ Docker-managed storage (no macOS translation layer)
+- ✅ Better fsync handling
+- ✅ WAL tuning reduces flush frequency
+- ✅ Supports 4 concurrent projects
+- ✅ Zero corruption issues since implementation
+
+**Detailed Documentation:** See `DOCKER_RELIABILITY.md` for comprehensive backup/recovery procedures.
+
 ## Intended Architecture
 
 ```

@@ -14,6 +14,7 @@ from recall.cli.cleanup import cleanup_test_data
 from recall.cli.doctor import doctor
 from recall.cli.migrate import migrate_embeddings
 from recall.cli.migrate_mode import migrate_mode
+from recall.cli.recover import recover
 from recall.cli.setup import setup
 from recall.config.loader import load_config
 from recall.core.store import SearchResult, UnifiedVectorStore
@@ -210,6 +211,7 @@ cli.add_command(migrate_mode, name="migrate-mode")
 cli.add_command(setup, name="setup")
 cli.add_command(cleanup_test_data, name="cleanup")
 cli.add_command(doctor, name="doctor")
+cli.add_command(recover, name="recover")
 
 
 if __name__ == "__main__":

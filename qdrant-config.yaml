@@ -1,0 +1,39 @@
+# Qdrant Configuration for macOS Docker Reliability
+# Purpose: Reduce WAL corruption risk on macOS Docker volumes
+
+storage:
+  # WAL (Write-Ahead Log) Configuration
+  # Larger buffer reduces frequency of fsync calls (main corruption source on macOS)
+  wal_capacity_mb: 512              # Default: 32MB, increased for batching
+  wal_segments_ahead: 2             # Default: 0, buffer more segments
+
+  # Performance mode trades durability for throughput
+  # Batches writes before flushing to reduce fsync frequency
+  performance:
+    max_search_threads: 4           # Limit concurrent searches
+    max_optimization_threads: 2     # Limit background optimization
+
+  # Optimizer configuration
+  # Higher threshold means more batching before triggering indexing
+  optimizers_config:
+    default_segment_number: 2
+    max_segment_size: 200000
+    memmap_threshold: 50000
+    indexing_threshold: 50000       # Increased from default 20000
+    flush_interval_sec: 30          # Increased from default 5
+    max_optimization_threads: 2
+
+# Service configuration
+service:
+  # Increase timeout for operations (helps prevent corruption during heavy writes)
+  max_request_size_mb: 32
+  max_workers: 0                    # Auto-detect based on CPU cores
+
+# TLS disabled for local development
+# Enable for production multi-machine setups
+cluster:
+  enabled: false
+
+# API configuration
+api:
+  enable_cors: true

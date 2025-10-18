@@ -1,4 +1,4 @@
-# Recall v1.3.3 - Semantic Vector Memory for Coding Agents
+# Recall v1.4.0 - Semantic Vector Memory for Coding Agents
 
 [![Status](https://img.shields.io/badge/status-production--ready-brightgreen)](https://github.com/WKassebaum/Recall)
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/)
@@ -210,7 +210,74 @@ If you're already using Recall in embedded mode and want multi-project support i
 
 ### Migration Between Modes
 
-**Coming soon in v1.4.0:** `recall migrate-mode` command to transfer memories between embedded and network modes without data loss.
+**Safe migration script available:** Use `scripts/migrate-to-named-volumes.sh` to safely transfer data from bind mounts to named volumes without data loss. See [TEAM_ROLLOUT_GUIDE.md](TEAM_ROLLOUT_GUIDE.md) for details.
+
+---
+
+## 🛡️ Docker Reliability & Automated Backups (v1.4.0)
+
+### Production-Ready Stability
+
+Recall v1.4.0 eliminates Docker corruption issues on macOS and provides automated backup/recovery:
+
+**✅ Docker Reliability Improvements:**
+- **Named volumes** - Docker-managed storage eliminates macOS file descriptor translation issues
+- **WAL tuning** - Optimized for batched writes (512MB buffer, 30s flush intervals)
+- **Health checks** - Automatic corruption detection
+- **Multi-project validated** - Stable with 4+ concurrent projects
+- **Zero corruption** - No data loss since implementation
+
+**✅ Automated Backup System (macOS):**
+- **Every 6 hours** - Automated backups via launchd
+- **Intelligent rotation** - 4 recent (24hrs), 7 daily, 4 weekly
+- **Auto-cleanup** - Old backups automatically pruned
+- **6-hour maximum data loss** - Down from total loss before
+
+**✅ Auto-Recovery System:**
+```bash
+# One-command health check and recovery
+recall recover
+
+# Force recovery from latest backup
+recall recover --force
+
+# Recover from specific backup
+recall recover --backup backups/recall-backup-20251018.tar.gz
+```
+
+**Recovery time:** 2-3 minutes (fully automated)
+
+### Quick Setup (macOS)
+
+**1. Install automated backups:**
+```bash
+./scripts/setup-auto-backup.sh
+```
+
+**2. Verify service:**
+```bash
+launchctl list | grep recall.backup
+# Expected: -   0   com.recall.backup
+```
+
+**3. Test recovery:**
+```bash
+recall recover
+# Should show: ✅ All health checks passed!
+```
+
+### Cross-Platform Support
+
+- **macOS:** ✅ Fully automated (launchd)
+- **Linux:** ✅ Easy (cron, 10 min setup) - See [CROSS_PLATFORM_BACKUP_GUIDE.md](CROSS_PLATFORM_BACKUP_GUIDE.md)
+- **Windows:** ✅ WSL2 recommended (use Linux approach)
+
+### Documentation
+
+- **[DOCKER_RELIABILITY.md](DOCKER_RELIABILITY.md)** - Comprehensive troubleshooting and root cause analysis
+- **[AUTOMATED_BACKUP_RECOVERY_GUIDE.md](AUTOMATED_BACKUP_RECOVERY_GUIDE.md)** - Complete user guide
+- **[CROSS_PLATFORM_BACKUP_GUIDE.md](CROSS_PLATFORM_BACKUP_GUIDE.md)** - Linux/Windows setup
+- **[TEAM_ROLLOUT_GUIDE.md](TEAM_ROLLOUT_GUIDE.md)** - Migration strategy (NO data wipe needed)
 
 ---
 
@@ -323,6 +390,63 @@ Organize memories by type for targeted retrieval:
 - `bge-small-en-v1.5` - 84.7% accuracy, 384D, balanced performance
 
 All models run excellently on M1 Max (use <8% of 64GB RAM).
+
+---
+
+## 🎓 Claude Skills Integration (v1.4.0)
+
+**Progressive Disclosure Teaching System** - Recall now includes Claude Skills support for enhanced discoverability and guided usage.
+
+### What are Skills?
+
+Skills are teaching documentation that help Claude understand when and how to use tools effectively. Instead of loading full documentation into every conversation (~500+ tokens), Skills use progressive disclosure:
+
+- **Idle state:** ~20 tokens (metadata only)
+- **When needed:** Full SKILL.md loaded on-demand
+- **Additional context:** Real examples from production use
+
+### Installed Skill
+
+After installing Recall, you automatically get:
+
+📁 `~/.claude/skills/recall-memory-skill/`
+- `SKILL.md` - Comprehensive 400+ line usage guide
+  - When to Use Recall (auto-trigger patterns)
+  - Available MCP Tools documentation
+  - Event Types and Search Strategies
+  - Context Management workflows
+  - Integration patterns
+- `examples.md` - Real usage examples
+  - 8 comprehensive examples (debugging timelines, decision tracking, performance optimization)
+  - Anti-patterns to avoid
+  - Token efficiency analysis
+
+### Key Learning Topics
+
+The skill teaches Claude:
+- **Auto-trigger scenarios** - When to proactively use Recall (context >70%, milestones, bugs, decisions)
+- **Event type selection** - Choose correct type (decision, discovery, milestone, success, error, preference)
+- **Search strategies** - Semantic vs chronological vs hybrid modes
+- **Context management** - When to offload details to free working memory
+- **Workflow patterns** - Session continuity, debugging timelines, decision tracking
+
+### Benefits
+
+✅ **Better Claude understanding** - Claude knows when/how to use Recall without explicit reminders
+✅ **Token efficiency** - ~97% reduction (20 tokens idle vs 500+ always-loaded)
+✅ **Progressive disclosure** - Detailed docs loaded only when needed
+✅ **Real examples** - Learn from actual Recall development patterns
+
+### Manual Skill Installation
+
+If using manual installation (not plugin), create the skill directory:
+
+```bash
+mkdir -p ~/.claude/skills/recall-memory-skill/
+cp .claude-plugin/skills/* ~/.claude/skills/recall-memory-skill/
+```
+
+Claude Code will automatically discover and load the skill on next launch.
 
 ---
 
@@ -616,4 +740,4 @@ Apache 2.0
 
 ---
 
-**Version:** v1.3.3 | **Status:** Production-ready | **Last Updated:** 2025-10-15
+**Version:** v1.4.0 | **Status:** Production-ready | **Last Updated:** 2025-10-18

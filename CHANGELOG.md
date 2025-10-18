@@ -5,6 +5,118 @@ All notable changes to Recall will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-10-18
+
+### Added
+- **Docker reliability improvements** - Eliminates corruption on macOS ⭐
+  - Docker named volumes (replaces bind mounts for macOS stability)
+  - WAL tuning configuration (`qdrant-config.yaml`) for batch writes
+  - Performance mode with reduced fsync frequency
+  - Health checks to detect corruption early
+  - Multi-project support validated (4+ concurrent projects)
+  - `docker-compose.yml` for simplified deployment
+  - Zero corruption issues since implementation
+
+- **Automated backup system** (macOS) - Prevents data loss ⭐
+  - `scripts/backup-qdrant-auto.sh` - Intelligent rotation script
+    - Backups every 6 hours: 4 recent (24hrs), 7 daily, 4 weekly
+    - Auto-cleanup of old backups
+    - Symlink to latest good backup for auto-recovery
+  - `scripts/setup-auto-backup.sh` - One-command installer
+  - launchd service integration (`com.recall.backup.plist`)
+  - Comprehensive logging to `logs/backup-{stdout,stderr}.log`
+  - Maximum 6-hour data loss window (vs total loss before)
+
+- **Auto-recovery system** - One-command restoration ⭐
+  - `recall recover` command - Health monitoring and auto-recovery
+  - Three health checks: Docker container, Qdrant health, collection accessibility
+  - Automatic restoration from latest backup if corruption detected
+  - Force recovery option: `recall recover --force`
+  - Specific backup selection: `recall recover --backup <file>`
+  - 2-3 minute recovery time (fully automated)
+
+- **Migration tools** - Safe data preservation
+  - `scripts/migrate-to-named-volumes.sh` - Migrate bind mounts → named volumes
+  - Preserves all data (never deletes original)
+  - Automatic detection of current setup
+  - Verification and rollback instructions
+  - Zero breaking changes (both approaches supported)
+
+- **Claude Skills integration** - Progressive disclosure teaching system
+  - Created `~/.claude/skills/recall-memory-skill/` with comprehensive guidance
+  - `SKILL.md` - 400+ line comprehensive usage guide
+    - When to Use Recall (auto-trigger patterns)
+    - Available MCP Tools documentation
+    - Event Types and Search Strategies
+    - Context Management workflows
+    - Integration patterns and examples
+  - `examples.md` - Real usage examples from Recall development
+    - 8 comprehensive examples (debugging timelines, decision tracking, etc.)
+    - Anti-patterns to avoid
+    - Token efficiency analysis
+  - Progressive disclosure benefits: ~20 tokens idle, full docs on-demand
+
+- **Single-source version management** - Prevents version drift
+  - Canonical version: `src/recall/__version__.py`
+  - Dynamic versioning in `pyproject.toml` via setuptools
+  - Auto-sync script: `scripts/sync-version.sh` syncs to plugin.json
+  - Documentation in CLAUDE.md
+
+### Changed
+- Enhanced token efficiency through Skills progressive disclosure
+- Improved version management workflow (single source of truth)
+- Docker storage from bind mounts → named volumes (macOS stability)
+- WAL configuration optimized for batched writes (512MB buffer, 30s flush)
+
+### Fixed
+- ✅ Qdrant corruption on macOS Docker (file descriptor translation issues)
+- ✅ Data loss from container crashes (automated backup + recovery)
+- ✅ Multi-project concurrent access (thread-safe named volumes)
+- ✅ Bind mount fsync issues (Docker-managed storage eliminates OS layer)
+
+### Documentation
+- **[DOCKER_RELIABILITY.md](DOCKER_RELIABILITY.md)** - Comprehensive troubleshooting guide
+  - Root cause analysis (macOS osxfs/virtiofs issues)
+  - Quick start commands
+  - Automated backup strategy
+  - Recovery procedures
+  - Volume management
+  - Multi-project support details
+
+- **[AUTOMATED_BACKUP_RECOVERY_GUIDE.md](AUTOMATED_BACKUP_RECOVERY_GUIDE.md)** - Complete user guide
+  - 5-minute quick start
+  - How automation works (schedule, rotation)
+  - Auto-recovery usage examples
+  - Management commands
+  - Best practices for multi-project use
+  - Troubleshooting common issues
+
+- **[CROSS_PLATFORM_BACKUP_GUIDE.md](CROSS_PLATFORM_BACKUP_GUIDE.md)** - Platform analysis
+  - Linux support: cron approach (10 min setup, scripts work as-is)
+  - Windows WSL2: recommended (use Linux approach)
+  - Windows native: not recommended (2-3 hours PowerShell work)
+  - Platform-specific implementation details
+
+- **[TEAM_ROLLOUT_GUIDE.md](TEAM_ROLLOUT_GUIDE.md)** - Breaking changes analysis
+  - **Answer: NO database wipe needed**
+  - Optional migration strategy
+  - Safe migration script usage
+  - Backward compatibility approach
+  - Email templates for team communication
+  - Rollback procedures
+
+- Created Claude Skills teaching documentation
+- Added Docker Reliability section to CLAUDE.md
+- Added Version Management section to CLAUDE.md
+- Real-world usage examples from production development
+
+### Quality
+- Maintains backward compatibility
+- Zero breaking changes (supports both bind mounts and named volumes)
+- Skills enhance discoverability without changing core functionality
+- Production-tested on macOS with 4 concurrent projects
+- Automated backup system validated (launchd service running)
+
 ## [1.3.2] - 2025-10-11
 
 ### Added

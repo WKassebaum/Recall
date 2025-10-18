@@ -1,0 +1,28 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: recall-qdrant-6337
+    ports:
+      - "6337:6333"
+    volumes:
+      # Named volume (Docker-managed) - more reliable on macOS than bind mounts
+      - recall-qdrant-data:/qdrant/storage
+      # WAL tuning config for reliability
+      - ./qdrant-config.yaml:/qdrant/config/production.yaml:ro
+    restart: unless-stopped
+    environment:
+      # WAL configuration for macOS reliability
+      - QDRANT__STORAGE__WAL_CAPACITY_MB=512
+      - QDRANT__STORAGE__WAL_SEGMENTS_AHEAD=2
+      - QDRANT__STORAGE__PERFORMANCE_MODE=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  recall-qdrant-data:
+    name: recall-qdrant-data
+    driver: local

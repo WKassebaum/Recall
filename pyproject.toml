@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "recall"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Semantic Vector Memory for Coding Agents - Long-term context and fact tracking"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -161,3 +161,6 @@ verbose = 2
 [tool.bandit]
 exclude_dirs = ["tests", "scripts"]
 skips = ["B101"]  # Allow assert in non-test code (we use it for type narrowing)
+
+[tool.setuptools.dynamic]
+version = {attr = "recall.__version__"}

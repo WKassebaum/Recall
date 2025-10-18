@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Automated Recall Qdrant Backup Service -->
+    <key>Label</key>
+    <string>com.recall.backup</string>
+
+    <!-- Program to run -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem/scripts/backup-qdrant.sh</string>
+        <string>auto-backup</string>
+    </array>
+
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem</string>
+
+    <!-- Run every 6 hours -->
+    <key>StartInterval</key>
+    <integer>21600</integer>
+
+    <!-- Also run at startup (5 minutes after boot) -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Standard output log -->
+    <key>StandardOutPath</key>
+    <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem/logs/backup-stdout.log</string>
+
+    <!-- Error log -->
+    <key>StandardErrorPath</key>
+    <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem/logs/backup-stderr.log</string>
+
+    <!-- Keep job alive (restart on failure) -->
+    <key>KeepAlive</key>
+    <false/>
+
+    <!-- Nice level (lower priority to not interfere with work) -->
+    <key>Nice</key>
+    <integer>10</integer>
+
+    <!-- Environment variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
