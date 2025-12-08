@@ -1,6 +1,6 @@
 {
   "name": "recall",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Semantic vector memory for AI coding assistants - dual-mode retrieval (semantic + episodic) with Claude Skills integration",
   "author": {
     "name": "William Kassebaum",

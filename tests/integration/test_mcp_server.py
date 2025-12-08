@@ -23,9 +23,13 @@ class TestMCPServerIntegration:
         test_qdrant_path = tmp_path / "qdrant"
         test_qdrant_path.mkdir(exist_ok=True)
 
-        # Set environment variable to override default path
+        # Set environment variables to override default config
         original_path = os.environ.get("RECALL_QDRANT_PATH")
+        original_mode = os.environ.get("RECALL_QDRANT_MODE")
+
+        # Force embedded mode with isolated path (prevents connecting to network Qdrant)
         os.environ["RECALL_QDRANT_PATH"] = str(test_qdrant_path)
+        os.environ["RECALL_QDRANT_MODE"] = "embedded"
 
         yield test_qdrant_path
 
@@ -34,6 +38,10 @@ class TestMCPServerIntegration:
             os.environ["RECALL_QDRANT_PATH"] = original_path
         else:
             os.environ.pop("RECALL_QDRANT_PATH", None)
+        if original_mode:
+            os.environ["RECALL_QDRANT_MODE"] = original_mode
+        else:
+            os.environ.pop("RECALL_QDRANT_MODE", None)
 
     @pytest.fixture
     def cleanup_collections(self, isolated_qdrant: Path) -> None:

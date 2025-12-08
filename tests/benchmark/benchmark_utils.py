@@ -14,6 +14,14 @@ from recall.config.loader import load_config
 from recall.core.store import UnifiedVectorStore
 from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
 
+# Map short model names to full HuggingFace paths
+MODEL_NAME_MAP = {
+    "snowflake/arctic-embed-m": "Snowflake/snowflake-arctic-embed-m",
+    "nomic-embed-text-v1.5": "nomic-ai/nomic-embed-text-v1.5",
+    "bge-small-en-v1.5": "BAAI/bge-small-en-v1.5",
+    "all-MiniLM-L6-v2": "sentence-transformers/all-MiniLM-L6-v2",
+}
+
 
 class BenchmarkResults:
     """Track benchmark results for a model."""
@@ -228,16 +236,21 @@ class AccuracyBenchmark:
         """Run benchmark for a specific model.
 
         Args:
-            model_name: Embedding model to test
+            model_name: Embedding model to test (short or full name)
 
         Returns:
             Benchmark results
         """
         print(f"\n📊 Benchmarking: {model_name}")
 
+        # Resolve model name to full HuggingFace path
+        resolved_name = MODEL_NAME_MAP.get(model_name, model_name)
+        if resolved_name != model_name:
+            print(f"  📦 Resolved to: {resolved_name}")
+
         # Initialize components
         config = load_config("config.yaml")
-        embedder = SentenceTransformerEmbedder(model_name)
+        embedder = SentenceTransformerEmbedder(resolved_name)
         backend = QdrantBackend(host=config.qdrant_host, port=config.qdrant_port)
         store = UnifiedVectorStore(backend=backend)
         store.set_embedder(embedder)

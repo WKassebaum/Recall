@@ -34,7 +34,8 @@ class SentenceTransformerEmbedder:
             model_name: HuggingFace model name
         """
         self._model_name = model_name
-        self._model = SentenceTransformer(model_name)
+        # trust_remote_code=True required for models like nomic-ai/nomic-embed-text-v1.5
+        self._model = SentenceTransformer(model_name, trust_remote_code=True)
         dim = self._model.get_sentence_embedding_dimension()
         if dim is None:
             raise ValueError(f"Could not determine dimension for model {model_name}")
