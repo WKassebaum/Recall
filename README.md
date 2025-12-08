@@ -92,6 +92,8 @@ Switch models freely - Recall routes automatically to the correct collection.
 - Docker (optional, required for network mode multi-project support)
 
 > **📖 Detailed Installation Guide:** See [INSTALLATION.md](INSTALLATION.md) for platform-specific instructions, troubleshooting, and common issues.
+>
+> **🤖 AI Agents:** If you're Claude or another AI assistant asked to install Recall, see the [AI Agent Installation Guide](INSTALLATION.md#ai-agent-installation-guide) for step-by-step instructions including user action prompts.
 
 ### Installation via Plugin (Recommended) ⭐
 

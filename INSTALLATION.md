@@ -6,12 +6,227 @@ Comprehensive installation instructions for all platforms and setups.
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Plugin Installation (Recommended)](#plugin-installation-recommended)
-3. [Manual Installation](#manual-installation)
-4. [Platform-Specific Notes](#platform-specific-notes)
-5. [Troubleshooting](#troubleshooting)
-6. [Verification](#verification)
+1. [AI Agent Installation Guide](#ai-agent-installation-guide) **← Start here if you're Claude or another AI assistant**
+2. [Prerequisites](#prerequisites)
+3. [Plugin Installation (Recommended)](#plugin-installation-recommended)
+4. [Manual Installation](#manual-installation)
+5. [Platform-Specific Notes](#platform-specific-notes)
+6. [Troubleshooting](#troubleshooting)
+7. [Verification](#verification)
+
+---
+
+## AI Agent Installation Guide
+
+> **For Claude Code, Cursor, Windsurf, and other AI coding assistants**
+>
+> If a user has asked you to install Recall, follow this guide. It provides complete instructions including steps that require user action.
+
+### Quick Assessment
+
+Before starting, check if Recall is already installed:
+
+```bash
+# Check if recall MCP tools are available
+/mcp  # In Claude Code - look for "recall" in the list
+```
+
+If `recall` or `plugin:recall:recall` appears with tools like `ingest_memory`, `recall_memory`, `memory_stats` - Recall is already installed. Run `mcp__recall__diagnose_installation()` to verify health.
+
+---
+
+### Installation Steps for AI Agents
+
+Follow these steps in order. Steps marked with **[USER ACTION]** require the user to perform manually.
+
+#### Step 1: Clone Repository
+
+```bash
+# Clone to a suitable location
+cd ~/WorkDev  # Or user's preferred development directory
+git clone https://github.com/WKassebaum/Recall.git
+cd Recall
+```
+
+#### Step 2: Create Virtual Environment
+
+```bash
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # macOS/Linux
+# OR: venv\Scripts\activate  # Windows
+```
+
+#### Step 3: Install Dependencies
+
+```bash
+# Install Recall in editable mode
+pip install -e .
+```
+
+#### Step 4: Get Absolute Paths
+
+**Important:** You need absolute paths for MCP configuration.
+
+```bash
+# Get the Recall directory path
+RECALL_DIR=$(pwd)
+echo "Recall directory: $RECALL_DIR"
+
+# Get the Python interpreter path
+PYTHON_PATH="$RECALL_DIR/venv/bin/python"
+echo "Python path: $PYTHON_PATH"
+```
+
+#### Step 5: Configure MCP Server **[USER ACTION REQUIRED]**
+
+**Tell the user:**
+
+> I've installed Recall, but you need to add the MCP server configuration to Claude Code. Please run this command:
+>
+> ```bash
+> claude mcp add recall -s user -- /path/to/Recall/venv/bin/python -m recall.mcp.server
+> ```
+>
+> Replace `/path/to/Recall` with: `{RECALL_DIR}` (the path I showed above)
+>
+> **OR** manually add to `~/.claude.json`:
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "recall": {
+>       "command": "/path/to/Recall/venv/bin/python",
+>       "args": ["-m", "recall.mcp.server"],
+>       "env": {
+>         "PYTHONPATH": "/path/to/Recall/src"
+>       }
+>     }
+>   }
+> }
+> ```
+
+#### Step 6: Restart Claude Code **[USER ACTION REQUIRED]**
+
+**Tell the user:**
+
+> Please restart Claude Code to load the new MCP server:
+> - Press **Cmd+Q** (macOS) or **Alt+F4** (Windows/Linux) to quit completely
+> - Relaunch Claude Code
+
+#### Step 7: Verify Installation
+
+After restart, verify the installation:
+
+```bash
+# Check MCP tools are available
+/mcp  # Should show "recall" with 4 tools
+
+# Run diagnostics
+mcp__recall__diagnose_installation()
+
+# Check stats
+mcp__recall__memory_stats()
+```
+
+**Expected output from memory_stats:**
+```
+📊 Recall Statistics:
+Total chunks: 0
+Active collection: recall_768d
+Embedder: Snowflake/snowflake-arctic-embed-m
+Dimension: 768D
+Qdrant: embedded (~/.recall/qdrant/)
+```
+
+---
+
+### Common Issues During AI-Assisted Installation
+
+#### Issue: "externally-managed-environment" Error
+
+**Cause:** System Python (especially Homebrew on macOS) blocks global pip installs.
+
+**Solution:** Already handled - we use a virtual environment. If error persists:
+```bash
+cd /path/to/Recall
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .
+```
+
+#### Issue: MCP Server Not Appearing After Restart
+
+**Cause:** Configuration not added correctly to `~/.claude.json`.
+
+**Solution:** Ask user to verify:
+```bash
+cat ~/.claude.json | grep -A 10 "recall"
+```
+
+If empty, the MCP add command failed. Have user manually edit `~/.claude.json`.
+
+#### Issue: Model Download Slow/Stuck
+
+**Cause:** First-time embedding model download (~3.5GB).
+
+**Solution:** This is normal. Tell user:
+> The Arctic embedding model (~3.5GB) is downloading. This takes 1-5 minutes depending on connection speed. Subsequent runs are instant.
+
+#### Issue: Module Not Found Errors
+
+**Cause:** Wrong Python interpreter or missing PYTHONPATH.
+
+**Solution:** Verify paths in `~/.claude.json` are absolute and correct:
+- `command` must point to `venv/bin/python` (not system Python)
+- `PYTHONPATH` must point to `/path/to/Recall/src`
+
+---
+
+### Post-Installation: First Memory Test
+
+Once installed, test with a simple memory:
+
+```python
+# Store a test memory
+mcp__recall__ingest_memory(
+    content="Recall installation successful! This is a test memory.",
+    session_id="installation-test",
+    metadata={
+        "event_type": "milestone",
+        "tags": "testing,installation"
+    }
+)
+
+# Retrieve it
+mcp__recall__recall_memory(
+    query="installation test",
+    session_id="installation-test"
+)
+```
+
+**Success criteria:** The test memory should be retrieved with a high similarity score (>0.8).
+
+---
+
+### Summary for AI Agents
+
+| Step | Action | Who |
+|------|--------|-----|
+| 1 | Clone repository | AI |
+| 2 | Create virtual environment | AI |
+| 3 | Install dependencies | AI |
+| 4 | Get absolute paths | AI |
+| 5 | Configure MCP server | **User** (must add to ~/.claude.json) |
+| 6 | Restart Claude Code | **User** (must quit and relaunch) |
+| 7 | Verify installation | AI |
+
+**Key User Actions:**
+1. Add MCP configuration (Step 5)
+2. Restart Claude Code (Step 6)
+
+These cannot be automated because they require modifying Claude Code's configuration and restarting the application.
 
 ---
 
