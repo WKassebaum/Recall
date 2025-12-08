@@ -27,6 +27,61 @@ Recall is a long-term semantic memory system that addresses context window limit
 
 ---
 
+## 🏆 Why Recall?
+
+### Economically Sustainable Memory
+
+Unlike "shadow agent" approaches that spawn secondary AI instances to observe your sessions, Recall uses an **O(1) cost model** - you only pay for tokens when you explicitly store or retrieve memories.
+
+| Approach | Token Cost | Session Impact |
+|----------|------------|----------------|
+| **Recall (Explicit)** | O(1) - per tool call | Zero overhead during work |
+| **Shadow Agent (Automatic)** | O(N) - re-reads entire context | 2-3x session cost |
+
+**Result:** Recall is economically viable for heavy daily use. Shadow agent approaches can double or triple your token consumption.
+
+### High Signal-to-Noise Ratio
+
+Recall captures **outcomes, not process**:
+
+```
+❌ Automatic capture: "Tried fix A... failed. Tried fix B... failed. Tried fix C... worked."
+✅ Recall explicit: "Fixed race condition in auth module by adding mutex lock"
+```
+
+When you retrieve memories later, you get actionable solutions - not debugging noise.
+
+### Production-Ready Architecture
+
+| Feature | Recall | Complex Alternatives |
+|---------|--------|---------------------|
+| **Dependencies** | Python + FastMCP + Qdrant | TypeScript + Bun + PM2 + SQLite + Chroma |
+| **Client Portability** | Any MCP client (CLI, Desktop, IDEs) | Often CLI-only (hook dependencies) |
+| **Stability** | Pure MCP (stable protocol) | Hook chains (version-sensitive) |
+| **Maintenance** | Single Python codebase | Multi-language stack |
+
+### Privacy by Design
+
+You control exactly what gets stored. No automatic surveillance of your coding sessions:
+
+- ✅ Store only what matters (decisions, discoveries, milestones)
+- ✅ Skip sensitive work with `<private>` tags
+- ✅ No background processes watching your context
+- ✅ Full audit trail of what you've stored
+
+### Multi-Model Safety
+
+Recall's **multi-collection routing** prevents dimension mismatch errors when switching embedding models:
+
+```
+384d collection ← all-MiniLM-L6-v2, bge-small-en-v1.5
+768d collection ← snowflake-arctic-embed-m, nomic-embed-text-v1.5
+```
+
+Switch models freely - Recall routes automatically to the correct collection.
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
