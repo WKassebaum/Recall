@@ -1,4 +1,4 @@
-# Recall v1.4.0 - Semantic Vector Memory for Coding Agents
+# Recall v1.4.1 - Semantic Vector Memory for Coding Agents
 
 [![Status](https://img.shields.io/badge/status-production--ready-brightgreen)](https://github.com/WKassebaum/Recall)
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/)
@@ -518,7 +518,7 @@ Claude Code will automatically discover and load the skill on next launch.
 - Time range filtering ✅
 
 ✅ **Quality Gates Passed**
-- Test coverage: 91.94% (target: >80%)
+- Test coverage: 80.03% (target: >80%)
 - Cyclomatic complexity: ≤8 (target: ≤10)
 - Type safety: mypy strict passing
 - Code quality: ruff passing
@@ -690,16 +690,25 @@ mypy src/recall --strict
 
 ## 🗺️ Roadmap
 
-### v1.4.0 (Next Release)
+### v1.4.1 (Current Release) ✅
+**Focus: Test Quality & PyPI Publishing**
+
+1. ✅ **Test Coverage Improvements**
+   - Expanded test suite from 54.77% to 80.03% coverage
+   - 236 total tests covering all core modules
+   - CLI modules fully tested (cleanup, doctor, recover, setup)
+   - Core modules tested (store, embedders, backends)
+   - Integration tests stabilized with proper database isolation
+
+2. ✅ **PyPI Package Preparation**
+   - Package builds verified (wheel + sdist)
+   - Version synchronization across all files
+   - Ready for PyPI publishing
+
+### v1.5.0 (Next Release)
 **Focus: Context Management & User Experience**
 
-1. **Mode Migration Tool** ⭐ *In Development*
-   - `recall migrate-mode` command
-   - Transfer memories between embedded ↔ network modes
-   - Canary validation strategy for safety
-   - Zero data loss during migration
-
-2. **Context Size Monitoring & Alerts** ⭐ *High Priority*
+1. **Context Size Monitoring & Alerts** ⭐ *High Priority*
    - Real-time context window usage tracking
    - Smart alerts when context reaches 70%+ capacity
    - Automatic suggestions for memories to offload
@@ -795,4 +804,4 @@ Apache 2.0
 
 ---
 
-**Version:** v1.4.0 | **Status:** Production-ready | **Last Updated:** 2025-10-18
+**Version:** v1.4.1 | **Status:** Production-ready | **Last Updated:** 2025-12-07

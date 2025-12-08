@@ -1,4 +1,4 @@
-# Testing Recall v1.3.3 - Plugin Installation Guide
+# Testing Recall v1.4.1 - Plugin Installation Guide
 
 > **Quick test guide for validating the Recall Claude Code plugin**
 
@@ -383,5 +383,5 @@ If all tests pass, congratulations! You've successfully:
 
 **Test Duration:** 5-10 minutes (first time), 2-3 minutes (subsequent runs)
 
-**Plugin Version:** v1.3.3
-**Last Updated:** 2025-10-11
+**Plugin Version:** v1.4.1
+**Last Updated:** 2025-12-07

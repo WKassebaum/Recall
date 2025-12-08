@@ -1,12 +1,19 @@
 # Recall Development TODO
 
-> **Last Updated:** 2025-10-11
-> **Current Version:** v1.3.3
-> **Status:** Plugin support complete, roadmap prioritized
+> **Last Updated:** 2025-12-07
+> **Current Version:** v1.4.1
+> **Status:** v1.4.1 released with test coverage improvements
 
 ---
 
-## 🎯 v1.4.0 - Context Management & User Experience
+## ✅ v1.4.x - Released
+
+**v1.4.0** - Docker reliability, automated backups, auto-recovery ✅
+**v1.4.1** - Test coverage improvements (80.03%), PyPI preparation ✅
+
+---
+
+## 🎯 v1.5.0 - Context Management & User Experience
 
 **Focus:** Individual developer productivity, context window optimization
 **Target:** Q1 2025
@@ -634,6 +641,6 @@
 
 ---
 
-**Version:** v1.3.3 → v1.4.0 → v1.5.0 → v2.0+
-**Status:** Roadmap finalized, ready for incremental development
-**Last Updated:** 2025-10-11
+**Version:** v1.4.1 (current) → v1.5.0 → v2.0+
+**Status:** v1.4.1 released, roadmap updated
+**Last Updated:** 2025-12-07

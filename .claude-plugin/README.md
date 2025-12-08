@@ -140,7 +140,7 @@ If automatic plugin installation fails, see comprehensive manual installation gu
 
 ## Known Issues
 
-**As of v1.3.4, automatic plugin installation may not work due to:**
+**As of v1.4.1, automatic plugin installation may not work due to:**
 
 1. MCP server not auto-registered in `~/.claude.json`
 2. Virtual environment not auto-created

@@ -5,6 +5,27 @@ All notable changes to Recall will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2025-12-07
+
+### Changed
+- **Test coverage improvements** - Expanded from 54.77% to 80.03% ⭐
+  - 236 total tests covering all core modules
+  - CLI modules fully tested (cleanup, doctor, recover, setup)
+  - Core modules tested (store, embedders, backends)
+  - Integration tests stabilized with proper database isolation
+  - Added tests for migrate_mode and MCP server
+
+### Fixed
+- ✅ Integration test failures caused by database state pollution
+- ✅ Import path for `UnexpectedResponse` (qdrant_client.http.exceptions)
+- ✅ Test isolation using proper fixtures and mocking
+
+### Quality
+- Test coverage: 80.03% (target: >80%)
+- All 236 tests passing
+- Package builds verified (wheel + sdist)
+- Version synchronization across all files
+
 ## [1.4.0] - 2025-10-18
 
 ### Added

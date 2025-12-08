@@ -804,4 +804,4 @@ After successful installation:
 
 ---
 
-**Version:** 1.3.3+ | **Last Updated:** 2025-10-15
+**Version:** 1.4.1 | **Last Updated:** 2025-12-07

@@ -62,8 +62,8 @@ This directory contains comprehensive documentation for the Recall semantic vect
 
 ## Version Information
 
-**Current Version:** v1.3.2
-**Latest Release:** [v1.3.2 Release Notes](releases/RELEASE_NOTES_v1.3.2.md)
+**Current Version:** v1.4.1
+**Latest Release:** [v1.4.1 on GitHub](https://github.com/WKassebaum/Recall/releases/tag/v1.4.1)
 
 ## Documentation Standards
 
