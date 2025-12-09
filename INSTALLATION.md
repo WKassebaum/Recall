@@ -39,7 +39,45 @@ If `recall` or `plugin:recall:recall` appears with tools like `ingest_memory`, `
 
 Follow these steps in order. Steps marked with **[USER ACTION]** require the user to perform manually.
 
-#### Step 1: Clone Repository
+**Choose one installation method:**
+- **Option A: PyPI (Simplest)** - Use `pip install semantic-recall`
+- **Option B: From Source** - Clone the repository (for development/contribution)
+
+---
+
+#### Option A: PyPI Installation (Recommended)
+
+##### Step 1: Create Virtual Environment
+
+```bash
+# Create a dedicated virtual environment
+python3 -m venv ~/recall-venv
+source ~/recall-venv/bin/activate  # macOS/Linux
+# OR: ~/recall-venv\Scripts\activate  # Windows
+```
+
+##### Step 2: Install from PyPI
+
+```bash
+pip install semantic-recall
+```
+
+##### Step 3: Get Python Path
+
+```bash
+# Get the Python interpreter path for MCP configuration
+PYTHON_PATH=$(which python)
+echo "Python path: $PYTHON_PATH"
+# Example: /Users/username/recall-venv/bin/python
+```
+
+**Continue to [Step 5: Configure MCP Server](#step-5-configure-mcp-server-user-action-required)**
+
+---
+
+#### Option B: Source Installation (For Development)
+
+##### Step 1: Clone Repository
 
 ```bash
 # Clone to a suitable location
@@ -48,7 +86,7 @@ git clone https://github.com/WKassebaum/Recall.git
 cd Recall
 ```
 
-#### Step 2: Create Virtual Environment
+##### Step 2: Create Virtual Environment
 
 ```bash
 # Create and activate virtual environment
@@ -57,7 +95,7 @@ source venv/bin/activate  # macOS/Linux
 # OR: venv\Scripts\activate  # Windows
 ```
 
-#### Step 3: Install Dependencies
+##### Step 3: Install Dependencies
 
 ```bash
 # Install Recall in editable mode
@@ -212,19 +250,32 @@ mcp__recall__recall_memory(
 
 ### Summary for AI Agents
 
+**Option A: PyPI Installation (Recommended)**
+
+| Step | Action | Who |
+|------|--------|-----|
+| 1 | Create virtual environment | AI |
+| 2 | `pip install semantic-recall` | AI |
+| 3 | Get Python path | AI |
+| 4 | Configure MCP server | **User** (must add to ~/.claude.json) |
+| 5 | Restart Claude Code | **User** (must quit and relaunch) |
+| 6 | Verify installation | AI |
+
+**Option B: Source Installation**
+
 | Step | Action | Who |
 |------|--------|-----|
 | 1 | Clone repository | AI |
 | 2 | Create virtual environment | AI |
-| 3 | Install dependencies | AI |
+| 3 | `pip install -e .` | AI |
 | 4 | Get absolute paths | AI |
 | 5 | Configure MCP server | **User** (must add to ~/.claude.json) |
 | 6 | Restart Claude Code | **User** (must quit and relaunch) |
 | 7 | Verify installation | AI |
 
 **Key User Actions:**
-1. Add MCP configuration (Step 5)
-2. Restart Claude Code (Step 6)
+1. Add MCP configuration (Step 4/5)
+2. Restart Claude Code (Step 5/6)
 
 These cannot be automated because they require modifying Claude Code's configuration and restarting the application.
 

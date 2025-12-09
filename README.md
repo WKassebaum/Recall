@@ -155,9 +155,30 @@ recall setup  # Choose embedded or network mode
 
 ---
 
-### Manual Installation (Alternative)
+### Installation via PyPI (Simplest)
 
-If you prefer manual setup or want to contribute:
+```bash
+# Create a virtual environment
+python -m venv ~/recall-venv
+source ~/recall-venv/bin/activate  # On Windows: ~/recall-venv\Scripts\activate
+
+# Install from PyPI
+pip install semantic-recall
+
+# Find your Python path for MCP configuration
+which python  # e.g., /Users/username/recall-venv/bin/python
+```
+
+Then add to Claude Code:
+```bash
+claude mcp add recall -s user -- /path/to/recall-venv/bin/python -m recall.mcp.server
+```
+
+---
+
+### Manual Installation (From Source)
+
+If you prefer source installation or want to contribute:
 
 ```bash
 # Clone repository
@@ -168,8 +189,8 @@ cd Recall
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install from source
+pip install -e .
 ```
 
 **First Launch Note:** On first use, sentence-transformers will automatically download the Arctic embedding model (~3.5GB) from HuggingFace to `~/.cache/huggingface/`. This takes 30-60 seconds on a good connection. Subsequent launches are instant.

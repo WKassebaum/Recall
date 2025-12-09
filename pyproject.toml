@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "recall"
+name = "semantic-recall"
 dynamic = ["version"]
 description = "Semantic Vector Memory for Coding Agents - Long-term context and fact tracking"
 readme = "README.md"
