@@ -1,15 +1,14 @@
 {
-  "extraKnownMarketplaces": [
-    {
-      "name": "Recall",
+  "extraKnownMarketplaces": {
+    "Recall": {
       "source": {
         "type": "github",
         "repo": "WKassebaum/Recall"
       },
       "trusted": true
     }
-  ],
-  "enabledPlugins": [
-    "recall@Recall"
-  ]
+  },
+  "enabledPlugins": {
+    "recall@Recall": true
+  }
 }
