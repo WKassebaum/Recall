@@ -180,6 +180,8 @@ claude mcp add recall -s user -- /path/to/recall-venv/bin/python -m recall.mcp.s
 
 If you prefer source installation or want to contribute:
 
+> **Note for developers:** If you plan to run Claude Code from within the Recall source directory, install the plugin globally first via the plugin method above. The source repo does not include project-level Claude settings to avoid schema compatibility issues.
+
 ```bash
 # Clone repository
 git clone https://github.com/WKassebaum/Recall.git
