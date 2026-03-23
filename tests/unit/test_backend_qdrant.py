@@ -113,33 +113,76 @@ class TestQdrantBackendHealthCheck:
 class TestQdrantBackendEnsureCollection:
     """Test collection management."""
 
-    def test_ensure_collection_creates_new(self):
-        """Verify collection is created when it doesn't exist."""
+    def test_ensure_collection_creates_new_with_named_vectors(self):
+        """Verify new collection uses named vectors."""
         with patch("recall.backends.qdrant.QdrantClient") as mock_client:
             mock_instance = MagicMock()
             mock_instance.get_collections.return_value = MagicMock(collections=[])
             mock_client.return_value = mock_instance
 
             backend = QdrantBackend(host="localhost", port=6333)
-            backend.ensure_collection("recall_384d", 384)
+            backend.ensure_collection("recall_384d", 384, sparse=True)
 
             mock_instance.create_collection.assert_called_once()
             call_kwargs = mock_instance.create_collection.call_args[1]
             assert call_kwargs["collection_name"] == "recall_384d"
+            # Should use named vectors dict, not plain VectorParams
+            assert isinstance(call_kwargs["vectors_config"], dict)
+            assert "dense" in call_kwargs["vectors_config"]
+            # Should have sparse config
+            assert call_kwargs["sparse_vectors_config"] is not None
 
-    def test_ensure_collection_exists(self):
-        """Verify no creation when collection already exists."""
+    def test_ensure_collection_creates_without_sparse(self):
+        """Verify new collection without sparse flag omits sparse config."""
+        with patch("recall.backends.qdrant.QdrantClient") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.get_collections.return_value = MagicMock(collections=[])
+            mock_client.return_value = mock_instance
+
+            backend = QdrantBackend(host="localhost", port=6333)
+            backend.ensure_collection("recall_384d", 384, sparse=False)
+
+            call_kwargs = mock_instance.create_collection.call_args[1]
+            assert call_kwargs["sparse_vectors_config"] is None
+
+    def test_ensure_collection_detects_legacy(self):
+        """Verify existing unnamed-vector collection enters legacy mode."""
+        from qdrant_client.models import VectorParams
+
         with patch("recall.backends.qdrant.QdrantClient") as mock_client:
             mock_collection = MagicMock()
             mock_collection.name = "recall_384d"
             mock_instance = MagicMock()
             mock_instance.get_collections.return_value = MagicMock(collections=[mock_collection])
+            # Simulate unnamed vectors
+            mock_info = MagicMock()
+            mock_info.config.params.vectors = VectorParams(size=384, distance="Cosine")
+            mock_instance.get_collection.return_value = mock_info
             mock_client.return_value = mock_instance
 
             backend = QdrantBackend(host="localhost", port=6333)
             backend.ensure_collection("recall_384d", 384)
 
+            assert backend.is_legacy_collection("recall_384d")
             mock_instance.create_collection.assert_not_called()
+
+    def test_ensure_collection_named_not_legacy(self):
+        """Verify existing named-vector collection is not legacy."""
+        with patch("recall.backends.qdrant.QdrantClient") as mock_client:
+            mock_collection = MagicMock()
+            mock_collection.name = "recall_384d"
+            mock_instance = MagicMock()
+            mock_instance.get_collections.return_value = MagicMock(collections=[mock_collection])
+            # Simulate named vectors (dict)
+            mock_info = MagicMock()
+            mock_info.config.params.vectors = {"dense": MagicMock()}
+            mock_instance.get_collection.return_value = mock_info
+            mock_client.return_value = mock_instance
+
+            backend = QdrantBackend(host="localhost", port=6333)
+            backend.ensure_collection("recall_384d", 384)
+
+            assert not backend.is_legacy_collection("recall_384d")
 
 
 class TestQdrantBackendOperations:
@@ -172,9 +215,11 @@ class TestQdrantBackendOperations:
         assert call_kwargs["collection_name"] == "recall_384d"
         assert len(call_kwargs["points"]) == 1
 
-    def test_search(self, mock_backend):
-        """Verify search returns chunks."""
-        # Mock search result
+    def test_search_legacy(self, mock_backend):
+        """Verify search with legacy (unnamed) vectors."""
+        # Mark as legacy
+        mock_backend._legacy_collections.add("recall_384d")
+
         mock_result = MagicMock()
         mock_result.id = "test-uuid"
         mock_result.payload = {
@@ -193,10 +238,37 @@ class TestQdrantBackendOperations:
         assert len(results) == 1
         assert results[0].content == "Test content"
         assert results[0].id == "chunk-123"
-        assert results[0].metadata["session_id"] == "test"
+        # Legacy uses unnamed query_vector
+        call_kwargs = mock_backend._mock_instance.search.call_args[1]
+        assert isinstance(call_kwargs["query_vector"], list)
+
+    def test_search_named_vectors(self, mock_backend):
+        """Verify search with named vectors uses ('dense', vector) tuple."""
+        mock_result = MagicMock()
+        mock_result.id = "test-uuid"
+        mock_result.payload = {
+            "content": "Test content",
+            "original_id": "chunk-123",
+            "metadata": {"session_id": "test"},
+        }
+        mock_result.vector = {"dense": [0.1] * 384}
+        mock_result.score = 0.95
+
+        mock_backend._mock_instance.search.return_value = [mock_result]
+
+        query_vector = np.array([0.1] * 384, dtype=np.float32)
+        results = mock_backend.search("recall_384d", query_vector, top_k=5)
+
+        assert len(results) == 1
+        assert results[0].content == "Test content"
+        # Named uses ("dense", vector) tuple
+        call_kwargs = mock_backend._mock_instance.search.call_args[1]
+        assert isinstance(call_kwargs["query_vector"], tuple)
+        assert call_kwargs["query_vector"][0] == "dense"
 
     def test_search_no_vector_error(self, mock_backend):
         """Verify error when search returns no vectors."""
+        mock_backend._legacy_collections.add("recall_384d")
         mock_result = MagicMock()
         mock_result.id = "test-uuid"
         mock_result.payload = {"content": "Test", "original_id": "test"}
@@ -209,8 +281,54 @@ class TestQdrantBackendOperations:
         with pytest.raises(ValueError, match="did not return vectors"):
             mock_backend.search("recall_384d", query_vector)
 
-    def test_get_all_chunks(self, mock_backend):
-        """Verify get_all_chunks retrieval."""
+    def test_hybrid_search(self, mock_backend):
+        """Verify hybrid search uses query_points with RRF fusion."""
+        from qdrant_client.models import SparseVector
+
+        mock_result = MagicMock()
+        mock_result.id = "test-uuid"
+        mock_result.payload = {
+            "content": "CBS pathway",
+            "original_id": "chunk-1",
+            "metadata": {},
+        }
+        mock_result.vector = {"dense": [0.1] * 384}
+
+        mock_backend._mock_instance.query_points.return_value = MagicMock(points=[mock_result])
+
+        query_vector = np.array([0.1] * 384, dtype=np.float32)
+        sparse_query = SparseVector(indices=[42, 100], values=[1.0, 1.0])
+
+        results = mock_backend.hybrid_search("recall_384d", query_vector, sparse_query, top_k=5)
+
+        assert len(results) == 1
+        assert results[0].content == "CBS pathway"
+        mock_backend._mock_instance.query_points.assert_called_once()
+
+    def test_hybrid_search_falls_back_for_legacy(self, mock_backend):
+        """Verify hybrid search falls back to dense-only for legacy collections."""
+        mock_backend._legacy_collections.add("recall_384d")
+
+        mock_result = MagicMock()
+        mock_result.id = "test-uuid"
+        mock_result.payload = {"content": "Test", "original_id": "chunk-1", "metadata": {}}
+        mock_result.vector = [0.1] * 384
+        mock_backend._mock_instance.search.return_value = [mock_result]
+
+        from qdrant_client.models import SparseVector
+
+        query_vector = np.array([0.1] * 384, dtype=np.float32)
+        sparse_query = SparseVector(indices=[42], values=[1.0])
+
+        results = mock_backend.hybrid_search("recall_384d", query_vector, sparse_query, top_k=5)
+
+        assert len(results) == 1
+        # Should have used client.search, not query_points
+        mock_backend._mock_instance.search.assert_called_once()
+        mock_backend._mock_instance.query_points.assert_not_called()
+
+    def test_get_all_chunks_unnamed_vectors(self, mock_backend):
+        """Verify get_all_chunks with unnamed (legacy) vectors."""
         mock_point = MagicMock()
         mock_point.id = "test-uuid"
         mock_point.payload = {"content": "Test content", "original_id": "chunk-123", "metadata": {}}
@@ -222,6 +340,21 @@ class TestQdrantBackendOperations:
 
         assert len(chunks) == 1
         assert chunks[0].content == "Test content"
+
+    def test_get_all_chunks_named_vectors(self, mock_backend):
+        """Verify get_all_chunks extracts dense from named vector dict."""
+        mock_point = MagicMock()
+        mock_point.id = "test-uuid"
+        mock_point.payload = {"content": "Named content", "original_id": "chunk-456", "metadata": {}}
+        mock_point.vector = {"dense": [0.2] * 384}
+
+        mock_backend._mock_instance.scroll.return_value = ([mock_point], None)
+
+        chunks = mock_backend.get_all_chunks("recall_384d", limit=100)
+
+        assert len(chunks) == 1
+        assert chunks[0].content == "Named content"
+        assert len(chunks[0].embedding) == 384
 
     def test_get_all_chunks_paginated(self, mock_backend):
         """Verify get_all_chunks paginates through all pages."""

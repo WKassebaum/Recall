@@ -34,6 +34,10 @@ collections:
   # recall_768d (snowflake-arctic-embed-m, nomic-embed-text-v1.5)
   # Collections created automatically based on active embedder dimension
 
+# SPARSE VECTORS (BM25 keyword matching)
+sparse:
+  enabled: true  # Enable BM25 sparse vectors for hybrid keyword + semantic search
+
 # MONITORING
 monitoring:
   alert_on_fallback: true  # Alert when Arctic fails and MiniLM activates

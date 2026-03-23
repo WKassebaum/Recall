@@ -101,6 +101,13 @@ def get_components() -> (
 
         # Initialize unified store
         _store = UnifiedVectorStore(backend=backend)
+
+        # Initialize sparse encoder if enabled
+        if _config.sparse_enabled:
+            from recall.sparse.encoder import SparseEncoder
+
+            _store.set_sparse_encoder(SparseEncoder())
+
         _store.set_embedder(_embedder)
 
     assert _config is not None  # Type narrowing
@@ -219,6 +226,12 @@ async def recall_memory(
             description='Tag filter: "CBS,molybdenum" (comma-separated, case-insensitive, partial match, OR semantics)'
         ),
     ] = None,
+    keywords: Annotated[
+        str | None,
+        Field(
+            description='BM25 keyword filter for hybrid search: "molybdenum,CBS" (boosts chunks containing these terms via Reciprocal Rank Fusion)'
+        ),
+    ] = None,
     sort_by: Annotated[str, Field(description='Sort order: "score" (default) or "time"')] = "score",
 ) -> str:
     """
@@ -303,6 +316,7 @@ async def recall_memory(
         time_range=time_range_tuple,
         event_types=event_types_list,
         tags=tags_list,
+        keywords=keywords,
         sort_by=sort_by,
     )
 
@@ -315,6 +329,8 @@ async def recall_memory(
 
     # Format results
     mode_label = retrieval_mode.upper()
+    if keywords and store._sparse_encoder is not None:
+        mode_label += " + BM25 HYBRID"
     output_lines = [
         f"Found {len(results)} relevant memories ({mode_label} mode):\n",
     ]
@@ -360,14 +376,82 @@ async def memory_stats() -> str:
     else:
         qdrant_info = f"{backend.host}:{backend.port}"
 
+    # Sparse encoder status
+    sparse_status = "enabled" if store._sparse_encoder is not None else "disabled"
+    legacy_status = ""
+    if backend.is_legacy_collection(active_collection):
+        legacy_status = " (LEGACY — run 'recall migrate-schema' to upgrade)"
+
     return (
         f"📊 Recall Statistics:\n"
         f"Total chunks: {total_chunks}\n"
-        f"Active collection: {active_collection}\n"
+        f"Active collection: {active_collection}{legacy_status}\n"
         f"Embedder: {embedder_name}\n"
         f"Dimension: {dimension}D\n"
+        f"Sparse/BM25: {sparse_status}\n"
         f"Qdrant: {qdrant_info}"
     )
+
+
+@mcp.tool()
+async def diagnose_hybrid_search(
+    keywords: Annotated[
+        str, Field(description='Test keywords for hybrid search diagnostic')
+    ] = "CBS,molybdenum",
+) -> str:
+    """
+    Diagnose hybrid BM25 search configuration and test the full search chain.
+
+    Tests: sparse encoder, collection schema, legacy detection, and hybrid query.
+    """
+    _, _, embedder, store = get_components()
+    lines = ["🔍 Hybrid Search Diagnostics", "=" * 40, ""]
+
+    # Check 1: Sparse encoder
+    sparse_enc = store._sparse_encoder
+    lines.append(f"Sparse encoder: {'SET' if sparse_enc else 'NOT SET (keywords will be ignored)'}")
+
+    # Check 2: Backend and collection
+    backend = store.backend
+    assert backend is not None
+    collection = store.active_collection or "none"
+    is_legacy = backend.is_legacy_collection(collection)
+    lines.append(f"Collection: {collection}")
+    lines.append(f"Legacy mode: {is_legacy}")
+    lines.append(f"Legacy set contents: {backend._legacy_collections}")
+
+    # Check 3: Sparse query encoding
+    if sparse_enc:
+        sq = sparse_enc.encode_query(keywords)  # type: ignore[union-attr]
+        lines.append(f"Sparse query for '{keywords}': {len(sq.indices)} terms, indices={sq.indices[:5]}")
+    else:
+        lines.append("Sparse query: SKIPPED (no encoder)")
+
+    # Check 4: Test hybrid search on backend
+    if sparse_enc and not is_legacy:
+        try:
+            query_vector = embedder.encode("health")
+            sq = sparse_enc.encode_query(keywords)  # type: ignore[union-attr]
+            results = backend.hybrid_search(collection, query_vector, sq, top_k=5)
+            lines.append(f"\nHybrid search returned {len(results)} results:")
+            for i, r in enumerate(results):
+                lines.append(f"  {i+1}. {r.content[:80]}...")
+        except Exception as e:
+            lines.append(f"\nHybrid search ERROR: {e}")
+    else:
+        reason = "no sparse encoder" if not sparse_enc else "legacy collection"
+        lines.append(f"\nHybrid search: SKIPPED ({reason})")
+
+    # Check 5: Test store.search with keywords
+    try:
+        results = store.search(query="health", keywords=keywords, top_k=5)
+        lines.append(f"\nStore search with keywords returned {len(results)} results:")
+        for i, r in enumerate(results):
+            lines.append(f"  {i+1}. (score={r.score:.3f}) {r.content[:80]}...")
+    except Exception as e:
+        lines.append(f"\nStore search ERROR: {e}")
+
+    return "\n".join(lines)
 
 
 @mcp.tool()

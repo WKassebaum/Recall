@@ -87,6 +87,11 @@ class Config:
         return int(self._data.get("qdrant", {}).get("port", 6333))
 
     @property
+    def sparse_enabled(self) -> bool:
+        """Check if sparse vectors (BM25 keyword matching) are enabled."""
+        return bool(self._data.get("sparse", {}).get("enabled", True))
+
+    @property
     def auto_create_collections(self) -> bool:
         """Check if collections should be auto-created."""
         return bool(self._data.get("collections", {}).get("auto_create", True))

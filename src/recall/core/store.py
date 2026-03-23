@@ -42,20 +42,23 @@ class Chunk:
         embedding: npt.NDArray[np.float32] | None = None,
         chunk_id: str | None = None,
         metadata: dict[str, str] | None = None,
+        sparse_vector: object | None = None,
     ):
         """
         Initialize chunk.
 
         Args:
             content: Chunk content
-            embedding: Optional embedding vector
+            embedding: Optional dense embedding vector
             chunk_id: Optional chunk ID (auto-generated if not provided)
             metadata: Optional metadata (session_id, timestamps, tags, etc.)
+            sparse_vector: Optional sparse vector (SparseVector from qdrant_client.models)
         """
         self.content = content
         self.embedding = embedding
         self.id = chunk_id or self._generate_id(content)
         self.metadata = metadata or {}
+        self.sparse_vector = sparse_vector
 
     @staticmethod
     def _generate_id(content: str) -> str:
@@ -92,9 +95,19 @@ class UnifiedVectorStore:
         self.active_dimension: int | None = None
         self.active_collection: str | None = None
         self.backend = backend
+        self._sparse_encoder: object | None = None
 
         # In-memory storage (used if no backend provided)
         self._storage: dict[str, list[Chunk]] = {}
+
+    def set_sparse_encoder(self, encoder: object) -> None:
+        """
+        Set sparse encoder for BM25 keyword matching.
+
+        Args:
+            encoder: SparseEncoder instance (from recall.sparse.encoder)
+        """
+        self._sparse_encoder = encoder
 
     def set_embedder(self, embedder: EmbedderModel) -> None:
         """
@@ -108,8 +121,9 @@ class UnifiedVectorStore:
         self.active_collection = f"recall_{self.active_dimension}d"
 
         # Ensure collection exists
+        sparse = self._sparse_encoder is not None
         if self.backend:
-            self.backend.ensure_collection(self.active_collection, self.active_dimension)
+            self.backend.ensure_collection(self.active_collection, self.active_dimension, sparse=sparse)
         elif self.active_collection not in self._storage:
             self._storage[self.active_collection] = []
 
@@ -156,13 +170,17 @@ class UnifiedVectorStore:
 
     def _prepare_chunk(self, chunk: Chunk) -> None:
         """Prepare chunk by generating embedding and verifying dimension."""
-        # Generate embedding if not present
+        # Generate dense embedding if not present
         if chunk.embedding is None:
             assert self.active_embedder is not None  # Type narrowing
             chunk.embedding = self.active_embedder.encode(chunk.content)
 
         # Verify dimension
         self._verify_dimension(chunk.embedding)
+
+        # Generate sparse vector if encoder is set and chunk doesn't have one
+        if self._sparse_encoder is not None and chunk.sparse_vector is None:
+            chunk.sparse_vector = self._sparse_encoder.encode(chunk.content)  # type: ignore[union-attr]
 
     def _verify_dimension(self, embedding: npt.NDArray[np.float32]) -> None:
         """Verify embedding dimension matches active dimension."""
@@ -202,6 +220,7 @@ class UnifiedVectorStore:
         time_range: tuple[str, str | None] | None = None,
         event_types: list[str] | None = None,
         tags: list[str] | None = None,
+        keywords: str | None = None,
         sort_by: str = "score",
     ) -> list[SearchResult]:
         """
@@ -230,6 +249,7 @@ class UnifiedVectorStore:
             time_range: Optional time range filter ("YYYY-MM-DD", "YYYY-MM-DD" or None)
             event_types: Optional event type filter (e.g., ["decision", "milestone"])
             tags: Optional tag filter (case-insensitive, partial match, OR semantics)
+            keywords: Optional keywords for BM25 hybrid search (enables RRF fusion)
             sort_by: "score" (default) or "time" - how to order results
 
         Returns:
@@ -261,7 +281,15 @@ class UnifiedVectorStore:
                 assert self.active_embedder is not None  # Type narrowing
                 query_vector = self.active_embedder.encode(query)
                 self._verify_query_dimension(query_vector)
-                chunks = self.backend.search(self.active_collection, query_vector, fetch_limit)
+
+                # Use hybrid search when keywords provided and sparse encoder available
+                if keywords and self._sparse_encoder is not None:
+                    sparse_query = self._sparse_encoder.encode_query(keywords)  # type: ignore[union-attr]
+                    chunks = self.backend.hybrid_search(
+                        self.active_collection, query_vector, sparse_query, fetch_limit
+                    )
+                else:
+                    chunks = self.backend.search(self.active_collection, query_vector, fetch_limit)
             else:
                 # Chronological - get all chunks (will filter and sort)
                 chunks = self.backend.get_all_chunks(self.active_collection, fetch_limit)

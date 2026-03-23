@@ -14,6 +14,7 @@ from recall.cli.cleanup import cleanup_test_data
 from recall.cli.doctor import doctor
 from recall.cli.migrate import migrate_embeddings
 from recall.cli.migrate_mode import migrate_mode
+from recall.cli.migrate_schema import migrate_schema
 from recall.cli.recover import recover
 from recall.cli.setup import setup
 from recall.config.loader import load_config
@@ -206,6 +207,7 @@ def setup_qdrant() -> None:
 # Add migration commands to CLI group
 cli.add_command(migrate_embeddings, name="migrate")
 cli.add_command(migrate_mode, name="migrate-mode")
+cli.add_command(migrate_schema, name="migrate-schema")
 
 # Add setup, cleanup, and diagnostic commands to CLI group
 cli.add_command(setup, name="setup")
