@@ -185,8 +185,9 @@ class TestMigrationTool:
             # Configure store
             mock_store = MagicMock()
             mock_store.count.return_value = 10
-            mock_store.search.return_value = [
-                MagicMock(
+            # scroll() returns list[Chunk] (used by _load_source_chunks)
+            mock_store.scroll.return_value = [
+                Chunk(
                     content=f"chunk {i}",
                     chunk_id=f"id{i}",
                     metadata={"session": "test"},
@@ -254,7 +255,7 @@ class TestMigrationTool:
         """Waypoint 14: CRITICAL - Verify migration fails gracefully with no data."""
         # Make store return 0 chunks
         mock_components["store"].count.return_value = 0
-        mock_components["store"].search.return_value = []
+        mock_components["store"].scroll.return_value = []
 
         tool = MigrationTool(source_model="model-a", target_model="model-b")
 
@@ -333,9 +334,9 @@ class TestMigrationTool:
     def test_migration_handles_corrupted_chunk_data(self, mock_components: dict) -> None:
         """Waypoint 14: CRITICAL - Verify canary prevents migration with corrupted data."""
         # Return chunks with missing/invalid data
-        mock_components["store"].search.return_value = [
-            MagicMock(content=None, chunk_id="id1", metadata={}),  # Corrupted
-            MagicMock(content="valid", chunk_id="id2", metadata={"session": "test"}),
+        mock_components["store"].scroll.return_value = [
+            Chunk(content=None, chunk_id="id1", metadata={}),  # Corrupted
+            Chunk(content="valid", chunk_id="id2", metadata={"session": "test"}),
         ]
         mock_components["store"].count.return_value = 2
 

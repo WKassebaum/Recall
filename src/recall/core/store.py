@@ -469,6 +469,29 @@ class UnifiedVectorStore:
 
         return results
 
+    def scroll(self) -> list[Chunk]:
+        """
+        Retrieve all chunks from the active collection without a query.
+
+        Uses Qdrant's scroll API for paginated retrieval. Useful for
+        migration, export, and enumeration tasks that need all chunks.
+
+        Returns:
+            List of all chunks in the active collection
+
+        Raises:
+            ValueError: If no active embedder set
+        """
+        self._ensure_embedder_set()
+        assert self.active_collection is not None  # Type narrowing
+
+        if self.backend:
+            return self.backend.get_all_chunks(
+                self.active_collection, limit=100, paginate=True
+            )
+        else:
+            return list(self._storage.get(self.active_collection, []))
+
     def count(self) -> int:
         """Get count of chunks in active collection."""
         if not self.active_collection:

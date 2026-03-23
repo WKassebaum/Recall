@@ -223,6 +223,32 @@ class TestQdrantBackendOperations:
         assert len(chunks) == 1
         assert chunks[0].content == "Test content"
 
+    def test_get_all_chunks_paginated(self, mock_backend):
+        """Verify get_all_chunks paginates through all pages."""
+        # Page 1: returns a point and a next_offset
+        point1 = MagicMock()
+        point1.id = "uuid-1"
+        point1.payload = {"content": "Chunk 1", "original_id": "id-1", "metadata": {}}
+        point1.vector = [0.1] * 384
+
+        # Page 2: returns a point and None offset (last page)
+        point2 = MagicMock()
+        point2.id = "uuid-2"
+        point2.payload = {"content": "Chunk 2", "original_id": "id-2", "metadata": {}}
+        point2.vector = [0.2] * 384
+
+        mock_backend._mock_instance.scroll.side_effect = [
+            ([point1], "offset-2"),
+            ([point2], None),
+        ]
+
+        chunks = mock_backend.get_all_chunks("recall_384d", limit=1, paginate=True)
+
+        assert len(chunks) == 2
+        assert chunks[0].content == "Chunk 1"
+        assert chunks[1].content == "Chunk 2"
+        assert mock_backend._mock_instance.scroll.call_count == 2
+
     def test_get_all_chunks_no_vector_error(self, mock_backend):
         """Verify error when scroll returns no vectors."""
         mock_point = MagicMock()

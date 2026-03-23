@@ -3,6 +3,7 @@
 Waypoints 13-14: Safe migration between embedding models with failure testing.
 """
 
+import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -214,13 +215,26 @@ class MigrationTool:
     def _initialize_components(
         self,
     ) -> tuple[EmbedderModel, EmbedderModel, QdrantBackend]:
-        """Initialize source/target embedders and backend."""
+        """Initialize source/target embedders and backend.
+
+        Respects RECALL_QDRANT_MODE env var (same as MCP server):
+        - "network": Connect to Qdrant via host/port from config
+        - "embedded" (default): Use local file storage at RECALL_QDRANT_PATH
+        """
         config = load_config("config.yaml")
 
         source_embedder = SentenceTransformerEmbedder(self.source_model)
         target_embedder = SentenceTransformerEmbedder(self.target_model)
 
-        backend = QdrantBackend(host=config.qdrant_host, port=config.qdrant_port)
+        qdrant_mode = os.environ.get("RECALL_QDRANT_MODE", "embedded")
+
+        if qdrant_mode == "network":
+            host = os.environ.get("RECALL_QDRANT_HOST", config.qdrant_host)
+            port = int(os.environ.get("RECALL_QDRANT_PORT", str(config.qdrant_port)))
+            backend = QdrantBackend(host=host, port=port)
+        else:
+            qdrant_path = os.environ.get("RECALL_QDRANT_PATH", "~/.recall/qdrant")
+            backend = QdrantBackend(path=qdrant_path)
 
         return source_embedder, target_embedder, backend
 
@@ -230,25 +244,8 @@ class MigrationTool:
         store = UnifiedVectorStore(backend=backend)
         store.set_embedder(embedder)
 
-        # Retrieve all chunks (search with empty query returns all)
-        total_chunks = store.count()
-        if total_chunks == 0:
-            return []
-
-        # Use search to retrieve chunks (not ideal, but works for POC)
-        # In production, would use backend.get_all_chunks() method
-        results = store.search("", top_k=total_chunks)
-
-        chunks = []
-        for result in results:
-            chunk = Chunk(
-                content=result.content,
-                chunk_id=result.chunk_id,
-                metadata=result.metadata,
-            )
-            chunks.append(chunk)
-
-        return chunks
+        # Retrieve all chunks using scroll (paginates through entire collection)
+        return store.scroll()
 
     def _run_canary_validation(
         self, source_chunks: list[Chunk], target_embedder: EmbedderModel

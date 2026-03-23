@@ -188,6 +188,43 @@ class TestUnifiedVectorStorePOC:
             assert 0.0 <= result.score <= 1.0  # Cosine similarity range
 
 
+class TestUnifiedVectorStoreScroll:
+    """Tests for UnifiedVectorStore.scroll() method."""
+
+    def test_scroll_returns_all_chunks(self) -> None:
+        """Verify scroll() returns all chunks without a query."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384, model_name="mock-384")
+        store.set_embedder(embedder)
+
+        # Add several chunks
+        for i in range(5):
+            store.add(content=f"Chunk content {i}", metadata={"index": str(i)})
+
+        chunks = store.scroll()
+
+        assert len(chunks) == 5
+        contents = {c.content for c in chunks}
+        for i in range(5):
+            assert f"Chunk content {i}" in contents
+
+    def test_scroll_no_embedder_error(self) -> None:
+        """Verify scroll() raises if no embedder set."""
+        store = UnifiedVectorStore()
+
+        with pytest.raises(ValueError, match="No active embedder"):
+            store.scroll()
+
+    def test_scroll_empty_collection(self) -> None:
+        """Verify scroll() returns empty list for empty collection."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384, model_name="mock-384")
+        store.set_embedder(embedder)
+
+        chunks = store.scroll()
+        assert chunks == []
+
+
 class TestMockEmbedder:
     """Tests for MockEmbedder."""
 

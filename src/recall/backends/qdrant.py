@@ -196,43 +196,56 @@ class QdrantBackend:
 
         return chunks
 
-    def get_all_chunks(self, collection_name: str, limit: int = 100) -> list[Chunk]:
+    def get_all_chunks(
+        self, collection_name: str, limit: int = 100, paginate: bool = False
+    ) -> list[Chunk]:
         """
-        Get all chunks from collection (for chronological queries).
+        Get all chunks from collection (for chronological queries and migration).
 
         Args:
             collection_name: Collection name
-            limit: Maximum number of chunks to retrieve
+            limit: Maximum number of chunks per scroll page (or total if paginate=False)
+            paginate: If True, scroll through ALL points in the collection
 
         Returns:
             List of chunks with embeddings
         """
-        # Use scroll to get points without vector search
-        points, _ = self.client.scroll(
-            collection_name=collection_name, limit=limit, with_vectors=True
-        )
+        chunks: list[Chunk] = []
+        next_offset = None
 
-        chunks = []
-        for point in points:
-            # Extract chunk data from point
-            chunk_id = point.payload.get("original_id", str(point.id))  # type: ignore[union-attr]
-            metadata = point.payload.get("metadata", {})  # type: ignore[union-attr]
-
-            # Convert vector to numpy array
-            if point.vector is None:
-                raise ValueError(
-                    "Qdrant did not return vectors in scroll results. "
-                    "Ensure with_vectors=True is set."
-                )
-            embedding = np.array(point.vector, dtype=np.float32).reshape(-1)
-
-            chunk = Chunk(
-                content=point.payload["content"],  # type: ignore[index]
-                embedding=embedding,
-                chunk_id=chunk_id,
-                metadata=metadata,
+        while True:
+            # Use scroll to get points without vector search
+            points, next_offset = self.client.scroll(
+                collection_name=collection_name,
+                limit=limit,
+                offset=next_offset,
+                with_vectors=True,
             )
-            chunks.append(chunk)
+
+            for point in points:
+                # Extract chunk data from point
+                chunk_id = point.payload.get("original_id", str(point.id))  # type: ignore[union-attr]
+                metadata = point.payload.get("metadata", {})  # type: ignore[union-attr]
+
+                # Convert vector to numpy array
+                if point.vector is None:
+                    raise ValueError(
+                        "Qdrant did not return vectors in scroll results. "
+                        "Ensure with_vectors=True is set."
+                    )
+                embedding = np.array(point.vector, dtype=np.float32).reshape(-1)
+
+                chunk = Chunk(
+                    content=point.payload["content"],  # type: ignore[index]
+                    embedding=embedding,
+                    chunk_id=chunk_id,
+                    metadata=metadata,
+                )
+                chunks.append(chunk)
+
+            # Stop if not paginating or no more pages
+            if not paginate or next_offset is None:
+                break
 
         return chunks
 
