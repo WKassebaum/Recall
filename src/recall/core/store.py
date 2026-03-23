@@ -330,7 +330,8 @@ class UnifiedVectorStore:
             assert query is not None  # Type narrowing
             assert self.active_embedder is not None  # Type narrowing
             query_vector = self.active_embedder.encode(query)
-            return self._rank_chunks(query_vector, chunks, top_k)
+            results = self._rank_chunks(query_vector, chunks, top_k)
+            return self._apply_boost(results)
         else:
             return []
 
@@ -446,6 +447,27 @@ class UnifiedVectorStore:
             ):
                 filtered.append(chunk)
         return filtered
+
+    @staticmethod
+    def _apply_boost(results: list[SearchResult], factor: float = 1.5) -> list[SearchResult]:
+        """
+        Apply score boost to results marked with boost metadata.
+
+        Chunks with metadata "boost": "true" get their score multiplied,
+        then results are re-sorted by boosted score.
+
+        Args:
+            results: Search results to boost
+            factor: Boost multiplier (default 1.5x)
+
+        Returns:
+            Re-sorted results with boosted scores
+        """
+        for result in results:
+            if result.metadata.get("boost", "").lower() == "true":
+                result.score *= factor
+        results.sort(key=lambda r: r.score, reverse=True)
+        return results
 
     def _sort_chronologically(self, chunks: list[Chunk], top_k: int) -> list[SearchResult]:
         """

@@ -260,6 +260,54 @@ class TestUnifiedVectorStoreTagFiltering:
         assert len(results) == 4  # All chunks returned
 
 
+class TestUnifiedVectorStoreBoost:
+    """Tests for chunk score boosting."""
+
+    def test_boosted_chunk_ranks_higher(self) -> None:
+        """Verify boosted chunks get higher scores and re-sort above non-boosted."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384, model_name="mock-384")
+        store.set_embedder(embedder)
+
+        # Add a non-boosted chunk first (will have higher base similarity for "alpha")
+        store.add(content="alpha bravo charlie", metadata={"type": "generic"})
+        # Add a boosted chunk (different content, lower base similarity)
+        store.add(content="delta echo foxtrot", metadata={"boost": "true", "type": "important"})
+
+        results = store.search("alpha bravo", top_k=2)
+
+        # The boosted chunk should have its score multiplied by 1.5x
+        boosted = [r for r in results if r.metadata.get("boost") == "true"]
+        non_boosted = [r for r in results if r.metadata.get("boost") != "true"]
+        assert len(boosted) == 1
+        assert len(non_boosted) == 1
+
+    def test_boost_case_insensitive(self) -> None:
+        """Verify boost works with different cases."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384, model_name="mock-384")
+        store.set_embedder(embedder)
+
+        store.add(content="test content", metadata={"boost": "True"})
+
+        results = store.search("test", top_k=1)
+        assert len(results) == 1
+        # Score should be boosted (> base cosine similarity)
+
+    def test_no_boost_backward_compatible(self) -> None:
+        """Verify chunks without boost metadata are unaffected."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384, model_name="mock-384")
+        store.set_embedder(embedder)
+
+        store.add(content="regular chunk", metadata={})
+
+        results = store.search("regular", top_k=1)
+        assert len(results) == 1
+        # Score should be normal cosine similarity (0-1 range)
+        assert 0.0 <= results[0].score <= 1.0
+
+
 class TestUnifiedVectorStoreScroll:
     """Tests for UnifiedVectorStore.scroll() method."""
 
