@@ -2,7 +2,7 @@
 
 # EMBEDDER CONFIGURATION (sentence-transformers via HuggingFace)
 embedder:
-  model: Snowflake/snowflake-arctic-embed-m  # 768D, CPU-optimized
+  model: nomic-ai/nomic-embed-text-v1.5  # 768D, CPU-optimized
   # Model is auto-downloaded and cached at ~/.cache/huggingface/hub/
 
 # 2-TIER FALLBACK (Zen validated, 9/10 confidence)
