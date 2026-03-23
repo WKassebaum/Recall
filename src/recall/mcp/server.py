@@ -213,6 +213,12 @@ async def recall_memory(
         str | None,
         Field(description='Event type filter: "decision,milestone" (comma-separated)'),
     ] = None,
+    tags: Annotated[
+        str | None,
+        Field(
+            description='Tag filter: "CBS,molybdenum" (comma-separated, case-insensitive, partial match, OR semantics)'
+        ),
+    ] = None,
     sort_by: Annotated[str, Field(description='Sort order: "score" (default) or "time"')] = "score",
 ) -> str:
     """
@@ -283,6 +289,11 @@ async def recall_memory(
     if event_types:
         event_types_list = [t.strip() for t in event_types.split(",")]
 
+    # Parse tags if provided
+    tags_list = None
+    if tags:
+        tags_list = [t.strip() for t in tags.split(",")]
+
     # Search vector store with new parameters
     results = store.search(
         query=query,
@@ -291,6 +302,7 @@ async def recall_memory(
         retrieval_mode=retrieval_mode,
         time_range=time_range_tuple,
         event_types=event_types_list,
+        tags=tags_list,
         sort_by=sort_by,
     )
 

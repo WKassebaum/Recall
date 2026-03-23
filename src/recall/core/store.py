@@ -201,6 +201,7 @@ class UnifiedVectorStore:
         retrieval_mode: str = "semantic",
         time_range: tuple[str, str | None] | None = None,
         event_types: list[str] | None = None,
+        tags: list[str] | None = None,
         sort_by: str = "score",
     ) -> list[SearchResult]:
         """
@@ -228,6 +229,7 @@ class UnifiedVectorStore:
             retrieval_mode: "semantic" (default), "chronological", or "hybrid"
             time_range: Optional time range filter ("YYYY-MM-DD", "YYYY-MM-DD" or None)
             event_types: Optional event type filter (e.g., ["decision", "milestone"])
+            tags: Optional tag filter (case-insensitive, partial match, OR semantics)
             sort_by: "score" (default) or "time" - how to order results
 
         Returns:
@@ -253,7 +255,7 @@ class UnifiedVectorStore:
 
         if self.backend:
             # Get more chunks if using filters (may need to filter many)
-            fetch_limit = top_k * 10 if (time_range or event_types or filter) else top_k
+            fetch_limit = top_k * 10 if (time_range or event_types or filter or tags) else top_k
             if query and retrieval_mode != "chronological":
                 # Semantic or hybrid - use vector search
                 assert self.active_embedder is not None  # Type narrowing
@@ -280,6 +282,10 @@ class UnifiedVectorStore:
         # Apply event type filter
         if event_types:
             chunks = self._apply_event_type_filter(chunks, event_types)
+
+        # Apply tag filter
+        if tags:
+            chunks = self._apply_tags_filter(chunks, tags)
 
         # Sort and rank based on mode
         if retrieval_mode == "chronological" or sort_by == "time":
@@ -381,6 +387,35 @@ class UnifiedVectorStore:
         for chunk in chunks:
             event_type = chunk.metadata.get("event_type")
             if event_type in event_types:
+                filtered.append(chunk)
+        return filtered
+
+    def _apply_tags_filter(self, chunks: list[Chunk], tags: list[str]) -> list[Chunk]:
+        """
+        Apply tag filter with case-insensitive partial matching.
+
+        A chunk matches if ANY requested tag appears as a substring
+        in ANY of the chunk's comma-separated tags metadata.
+
+        Args:
+            chunks: Chunks to filter
+            tags: Tag substrings to match (OR semantics)
+
+        Returns:
+            Chunks matching at least one tag
+        """
+        tags_lower = [t.lower() for t in tags]
+        filtered = []
+        for chunk in chunks:
+            chunk_tags_str = chunk.metadata.get("tags", "")
+            if not chunk_tags_str:
+                continue
+            chunk_tags = [t.strip().lower() for t in chunk_tags_str.split(",")]
+            if any(
+                req_tag in chunk_tag
+                for req_tag in tags_lower
+                for chunk_tag in chunk_tags
+            ):
                 filtered.append(chunk)
         return filtered
 

@@ -31,7 +31,7 @@ class TestConfigLoader:
     def test_embedder_model_loaded(self, config_path: Path) -> None:
         """Waypoint 4: Verify embedder model is configured."""
         config = load_config(config_path)
-        assert config.embedder_model == "Snowflake/snowflake-arctic-embed-m"
+        assert config.embedder_model == "nomic-ai/nomic-embed-text-v1.5"
 
     def test_qdrant_config_loaded(self, config_path: Path) -> None:
         """Waypoint 4: Verify Qdrant configuration is loaded."""

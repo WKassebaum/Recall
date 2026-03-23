@@ -188,6 +188,78 @@ class TestUnifiedVectorStorePOC:
             assert 0.0 <= result.score <= 1.0  # Cosine similarity range
 
 
+class TestUnifiedVectorStoreTagFiltering:
+    """Tests for tag-based filtering in search()."""
+
+    def _make_store_with_tagged_chunks(self) -> UnifiedVectorStore:
+        """Helper: create store with tagged chunks for testing."""
+        store = UnifiedVectorStore()
+        embedder = MockEmbedder(dimension=384, model_name="mock-384")
+        store.set_embedder(embedder)
+
+        store.add(
+            content="CBS pathway upregulated due to molybdenum deficiency",
+            metadata={"tags": "CBS-pathway,molybdenum,urea-cycle", "session_id": "health"},
+        )
+        store.add(
+            content="Plans of treatment part 2.16 follow-up visit",
+            metadata={"tags": "clinical,visit-notes", "session_id": "health"},
+        )
+        store.add(
+            content="Dopamine catecholamine fatigue syndrome",
+            metadata={"tags": "dopamine,fatigue,CBS-pathway", "session_id": "health"},
+        )
+        store.add(
+            content="General lab results CBC panel",
+            metadata={"session_id": "health"},  # No tags
+        )
+        return store
+
+    def test_basic_tag_filtering(self) -> None:
+        """Verify tag filter returns only matching chunks."""
+        store = self._make_store_with_tagged_chunks()
+        results = store.search("health", tags=["molybdenum"])
+        assert len(results) == 1
+        assert "molybdenum" in results[0].content
+
+    def test_tag_filtering_case_insensitive(self) -> None:
+        """Verify tag matching is case-insensitive."""
+        store = self._make_store_with_tagged_chunks()
+        results = store.search("health", tags=["cbs-pathway"])
+        assert len(results) == 2
+        contents = {r.content for r in results}
+        assert any("CBS" in c for c in contents)
+        assert any("Dopamine" in c for c in contents)
+
+    def test_tag_filtering_partial_match(self) -> None:
+        """Verify partial tag matching (substring)."""
+        store = self._make_store_with_tagged_chunks()
+        # "CBS" should match "CBS-pathway"
+        results = store.search("health", tags=["CBS"])
+        assert len(results) == 2
+
+    def test_tag_filtering_or_semantics(self) -> None:
+        """Verify multiple tags use OR semantics."""
+        store = self._make_store_with_tagged_chunks()
+        results = store.search("health", tags=["molybdenum", "dopamine"])
+        assert len(results) == 2
+        contents = {r.content for r in results}
+        assert any("molybdenum" in c for c in contents)
+        assert any("Dopamine" in c for c in contents)
+
+    def test_tag_filtering_skips_untagged_chunks(self) -> None:
+        """Verify chunks without tags metadata are excluded."""
+        store = self._make_store_with_tagged_chunks()
+        results = store.search("lab results", tags=["CBC"])
+        assert len(results) == 0
+
+    def test_no_tags_parameter_backward_compatible(self) -> None:
+        """Verify search works without tags parameter (no regression)."""
+        store = self._make_store_with_tagged_chunks()
+        results = store.search("health", top_k=10)
+        assert len(results) == 4  # All chunks returned
+
+
 class TestUnifiedVectorStoreScroll:
     """Tests for UnifiedVectorStore.scroll() method."""
 
