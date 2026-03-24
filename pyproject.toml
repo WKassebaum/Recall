@@ -57,6 +57,10 @@ dev = [
 
 [project.scripts]
 recall = "recall.cli.main:cli"
+recall-session-start = "recall.hooks.session_start:main"
+recall-session-end = "recall.hooks.session_end:main"
+recall-pre-compact = "recall.hooks.pre_compact:main"
+recall-milestone-hook = "recall.hooks.milestone:main"
 
 [project.urls]
 Homepage = "https://github.com/WKassebaum/recall"
@@ -89,6 +93,7 @@ omit = [
     "*/tests/*",
     "*/test_*.py",
     "src/recall/cli/migrate_schema.py",
+    "src/recall/hooks/*",
 ]
 
 [tool.coverage.report]

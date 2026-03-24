@@ -68,3 +68,8 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Recall memory persistence state (session-local, not version controlled)
+.recall-session-state.json
+.recall-session-handoff.json
+.recall-breadcrumbs.jsonl
