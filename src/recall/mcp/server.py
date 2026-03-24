@@ -396,7 +396,7 @@ async def memory_stats() -> str:
 @mcp.tool()
 async def diagnose_hybrid_search(
     keywords: Annotated[
-        str, Field(description='Test keywords for hybrid search diagnostic')
+        str, Field(description="Test keywords for hybrid search diagnostic")
     ] = "CBS,molybdenum",
 ) -> str:
     """
@@ -422,8 +422,10 @@ async def diagnose_hybrid_search(
 
     # Check 3: Sparse query encoding
     if sparse_enc:
-        sq = sparse_enc.encode_query(keywords)  # type: ignore[union-attr]
-        lines.append(f"Sparse query for '{keywords}': {len(sq.indices)} terms, indices={sq.indices[:5]}")
+        sq = sparse_enc.encode_query(keywords)
+        lines.append(
+            f"Sparse query for '{keywords}': {len(sq.indices)} terms, indices={sq.indices[:5]}"
+        )
     else:
         lines.append("Sparse query: SKIPPED (no encoder)")
 
@@ -431,7 +433,7 @@ async def diagnose_hybrid_search(
     if sparse_enc and not is_legacy:
         try:
             query_vector = embedder.encode("health")
-            sq = sparse_enc.encode_query(keywords)  # type: ignore[union-attr]
+            sq = sparse_enc.encode_query(keywords)
             results = backend.hybrid_search(collection, query_vector, sq, top_k=5)
             lines.append(f"\nHybrid search returned {len(results)} results:")
             for i, r in enumerate(results):
@@ -444,10 +446,10 @@ async def diagnose_hybrid_search(
 
     # Check 5: Test store.search with keywords
     try:
-        results = store.search(query="health", keywords=keywords, top_k=5)
-        lines.append(f"\nStore search with keywords returned {len(results)} results:")
-        for i, r in enumerate(results):
-            lines.append(f"  {i+1}. (score={r.score:.3f}) {r.content[:80]}...")
+        search_results = store.search(query="health", keywords=keywords, top_k=5)
+        lines.append(f"\nStore search with keywords returned {len(search_results)} results:")
+        for i, sr in enumerate(search_results):
+            lines.append(f"  {i+1}. (score={sr.score:.3f}) {sr.content[:80]}...")
     except Exception as e:
         lines.append(f"\nStore search ERROR: {e}")
 

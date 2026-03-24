@@ -22,6 +22,7 @@ import numpy as np
 import numpy.typing as npt
 
 from recall.embedders.base import EmbedderModel
+from recall.sparse import SparseEncoderProtocol
 
 if TYPE_CHECKING:
     from recall.backends.qdrant import QdrantBackend
@@ -95,12 +96,12 @@ class UnifiedVectorStore:
         self.active_dimension: int | None = None
         self.active_collection: str | None = None
         self.backend = backend
-        self._sparse_encoder: object | None = None
+        self._sparse_encoder: SparseEncoderProtocol | None = None
 
         # In-memory storage (used if no backend provided)
         self._storage: dict[str, list[Chunk]] = {}
 
-    def set_sparse_encoder(self, encoder: object) -> None:
+    def set_sparse_encoder(self, encoder: SparseEncoderProtocol) -> None:
         """
         Set sparse encoder for BM25 keyword matching.
 
@@ -123,7 +124,9 @@ class UnifiedVectorStore:
         # Ensure collection exists
         sparse = self._sparse_encoder is not None
         if self.backend:
-            self.backend.ensure_collection(self.active_collection, self.active_dimension, sparse=sparse)
+            self.backend.ensure_collection(
+                self.active_collection, self.active_dimension, sparse=sparse
+            )
         elif self.active_collection not in self._storage:
             self._storage[self.active_collection] = []
 
@@ -180,7 +183,7 @@ class UnifiedVectorStore:
 
         # Generate sparse vector if encoder is set and chunk doesn't have one
         if self._sparse_encoder is not None and chunk.sparse_vector is None:
-            chunk.sparse_vector = self._sparse_encoder.encode(chunk.content)  # type: ignore[union-attr]
+            chunk.sparse_vector = self._sparse_encoder.encode(chunk.content)
 
     def _verify_dimension(self, embedding: npt.NDArray[np.float32]) -> None:
         """Verify embedding dimension matches active dimension."""
@@ -284,7 +287,7 @@ class UnifiedVectorStore:
 
                 # Use hybrid search when keywords provided and sparse encoder available
                 if keywords and self._sparse_encoder is not None:
-                    sparse_query = self._sparse_encoder.encode_query(keywords)  # type: ignore[union-attr]
+                    sparse_query = self._sparse_encoder.encode_query(keywords)
                     chunks = self.backend.hybrid_search(
                         self.active_collection, query_vector, sparse_query, fetch_limit
                     )
@@ -440,11 +443,7 @@ class UnifiedVectorStore:
             if not chunk_tags_str:
                 continue
             chunk_tags = [t.strip().lower() for t in chunk_tags_str.split(",")]
-            if any(
-                req_tag in chunk_tag
-                for req_tag in tags_lower
-                for chunk_tag in chunk_tags
-            ):
+            if any(req_tag in chunk_tag for req_tag in tags_lower for chunk_tag in chunk_tags):
                 filtered.append(chunk)
         return filtered
 
@@ -571,9 +570,7 @@ class UnifiedVectorStore:
         assert self.active_collection is not None  # Type narrowing
 
         if self.backend:
-            return self.backend.get_all_chunks(
-                self.active_collection, limit=100, paginate=True
-            )
+            return self.backend.get_all_chunks(self.active_collection, limit=100, paginate=True)
         else:
             return list(self._storage.get(self.active_collection, []))
 

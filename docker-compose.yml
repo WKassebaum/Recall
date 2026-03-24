@@ -16,7 +16,7 @@ services:
       - QDRANT__STORAGE__WAL_SEGMENTS_AHEAD=2
       - QDRANT__STORAGE__PERFORMANCE_MODE=true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333'"]
       interval: 30s
       timeout: 10s
       retries: 3

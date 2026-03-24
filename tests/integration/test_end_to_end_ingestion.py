@@ -38,7 +38,7 @@ class TestEndToEndIngestion:
         """Waypoint 6: Verify complete ingestion pipeline works."""
         # 1. Load configuration
         config = load_config("config.yaml")
-        assert config.embedder_model == "Snowflake/snowflake-arctic-embed-m"
+        assert config.embedder_model == "nomic-ai/nomic-embed-text-v1.5"
 
         # 2. Create embedder
         embedder = SentenceTransformerEmbedder(config.embedder_model)

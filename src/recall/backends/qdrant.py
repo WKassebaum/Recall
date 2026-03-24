@@ -22,8 +22,6 @@ import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
-    Fusion,
-    FusionQuery,
     PointStruct,
     Prefetch,
     SparseVector,
@@ -39,8 +37,10 @@ logger = logging.getLogger(__name__)
 def _extract_dense_vector(vector: Any) -> list[float]:
     """Extract dense vector from either unnamed (list) or named (dict) format."""
     if isinstance(vector, dict):
-        return vector.get("dense", vector)
-    return vector
+        result: list[float] = vector.get("dense", vector)
+        return result
+    result_list: list[float] = vector
+    return result_list
 
 
 class QdrantBackend:
@@ -134,9 +134,7 @@ class QdrantBackend:
         except Exception:
             return False
 
-    def ensure_collection(
-        self, collection_name: str, dimension: int, sparse: bool = False
-    ) -> None:
+    def ensure_collection(self, collection_name: str, dimension: int, sparse: bool = False) -> None:
         """
         Ensure collection exists with correct dimension.
 
@@ -309,8 +307,8 @@ class QdrantBackend:
         """Convert Qdrant search/query results to Chunk objects."""
         chunks = []
         for result in results:
-            chunk_id = result.payload.get("original_id", str(result.id))  # type: ignore[union-attr]
-            metadata = result.payload.get("metadata", {})  # type: ignore[union-attr]
+            chunk_id = result.payload.get("original_id", str(result.id))
+            metadata = result.payload.get("metadata", {})
 
             if result.vector is None:
                 raise ValueError(
@@ -322,7 +320,7 @@ class QdrantBackend:
             embedding = np.array(dense_vector, dtype=np.float32).reshape(-1)
 
             chunk = Chunk(
-                content=result.payload["content"],  # type: ignore[index]
+                content=result.payload["content"],
                 embedding=embedding,
                 chunk_id=chunk_id,
                 metadata=metadata,

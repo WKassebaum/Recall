@@ -6,6 +6,7 @@ to named vectors with sparse vector support for hybrid search.
 
 import os
 import time
+from typing import Any
 
 import click
 
@@ -81,7 +82,7 @@ def migrate_schema(collection: str | None, batch_size: int, dry_run: bool) -> No
 
         # Check if migration is needed
         if not backend._detect_legacy(coll_name):
-            click.echo(f"   ✅ Already using named vectors — skipping\n")
+            click.echo("   ✅ Already using named vectors — skipping\n")
             continue
 
         # Get collection info
@@ -89,19 +90,19 @@ def migrate_schema(collection: str | None, batch_size: int, dry_run: bool) -> No
         point_count = info.points_count or 0
         dimension = info.config.params.vectors.size  # type: ignore[union-attr]
 
-        click.echo(f"   Schema: unnamed vectors (legacy)")
+        click.echo("   Schema: unnamed vectors (legacy)")
         click.echo(f"   Points: {point_count}")
         click.echo(f"   Dimension: {dimension}D")
 
         if dry_run:
-            click.echo(f"   🏁 Dry run — migration needed\n")
+            click.echo("   🏁 Dry run — migration needed\n")
             continue
 
         if point_count == 0:
-            click.echo(f"   ⚠️  Empty collection — recreating with new schema...")
+            click.echo("   ⚠️  Empty collection — recreating with new schema...")
             backend.client.delete_collection(collection_name=coll_name)
             backend.ensure_collection(coll_name, dimension, sparse=True)
-            click.echo(f"   ✅ Recreated with named vectors + sparse\n")
+            click.echo("   ✅ Recreated with named vectors + sparse\n")
             migrated_count += 1
             continue
 
@@ -129,7 +130,7 @@ def migrate_schema(collection: str | None, batch_size: int, dry_run: bool) -> No
         # Phase 2: Delete old collection and recreate with new schema
         backend.client.delete_collection(collection_name=coll_name)
         backend.ensure_collection(coll_name, dimension, sparse=True)
-        click.echo(f"   🔧 Recreated collection with named vectors + sparse")
+        click.echo("   🔧 Recreated collection with named vectors + sparse")
 
         # Phase 3: Re-upsert with named vectors + computed sparse
         from qdrant_client.models import PointStruct
@@ -144,16 +145,18 @@ def migrate_schema(collection: str | None, batch_size: int, dry_run: bool) -> No
             for point in batch:
                 try:
                     # Extract dense vector (was unnamed list)
-                    dense_vector = point.vector
-                    if isinstance(dense_vector, dict):
-                        dense_vector = dense_vector.get("dense", list(dense_vector.values())[0])
+                    raw_vector: Any = point.vector
+                    if isinstance(raw_vector, dict):
+                        dense_vector: Any = raw_vector.get("dense", list(raw_vector.values())[0])
+                    else:
+                        dense_vector = raw_vector
 
                     # Compute sparse vector from content
                     content = point.payload.get("content", "")  # type: ignore[union-attr]
                     sparse_vector = sparse_encoder.encode(content) if content else None
 
                     # Build new point with named vectors
-                    vector: dict = {"dense": dense_vector}
+                    vector: dict[str, Any] = {"dense": dense_vector}
                     if sparse_vector and sparse_vector.indices:
                         vector["sparse"] = sparse_vector
 
@@ -176,7 +179,9 @@ def migrate_schema(collection: str | None, batch_size: int, dry_run: bool) -> No
             click.echo(f"   Progress: {progress:.0f}% ({migrated} migrated, {failed} failed)")
 
         duration = time.time() - start_time
-        click.echo(f"   ✅ Migration complete: {migrated}/{len(all_points)} points ({duration:.1f}s)\n")
+        click.echo(
+            f"   ✅ Migration complete: {migrated}/{len(all_points)} points ({duration:.1f}s)\n"
+        )
         migrated_count += 1
 
     if dry_run:

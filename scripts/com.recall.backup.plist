@@ -9,8 +9,7 @@
     <!-- Program to run -->
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem/scripts/backup-qdrant.sh</string>
-        <string>auto-backup</string>
+        <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem/scripts/backup-qdrant-auto.sh</string>
     </array>
 
     <!-- Working directory -->
