@@ -361,6 +361,38 @@ recall recover
 
 ---
 
+## 🧠 Memory Persistence Hooks (Auto-Save/Retrieve)
+
+Recall includes optional Claude Code hooks that automate memory save and retrieve across sessions. When enabled:
+
+- **SessionStart**: Injects previous session context and prompts Claude to query Recall
+- **PreCompact**: Fires before context compression, prompting Claude to save important context
+- **SessionEnd**: Captures session summary for the next session
+- **Milestones**: Automatically logs git commits and test runs as breadcrumbs
+
+### Quick Setup
+
+```bash
+# After installing Recall (pip install or plugin), run:
+./scripts/setup-hooks.sh
+
+# Restart Claude Code to activate
+```
+
+### How It Works
+
+Hooks are thin coordination signals (<500ms, stdlib only). They inject instructions — Claude decides what to save using its judgment, then calls `ingest_memory()` and `recall_memory()` via MCP.
+
+State files (`.recall-session-handoff.json`, `.recall-breadcrumbs.jsonl`, `.recall-session-state.json`) are per-project and gitignored.
+
+### Uninstall
+
+```bash
+./scripts/setup-hooks.sh --uninstall
+```
+
+---
+
 ## 💡 Usage
 
 ### Storing Memories

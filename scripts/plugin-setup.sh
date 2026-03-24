@@ -191,6 +191,23 @@ else
     exit 1
 fi
 
+# Step 6: Install memory persistence hooks (optional)
+echo ""
+echo -e "${BLUE}[6/6] Setting up memory persistence hooks...${NC}"
+
+if command -v jq &> /dev/null; then
+    if [ -f "$PLUGIN_DIR/scripts/setup-hooks.sh" ]; then
+        bash "$PLUGIN_DIR/scripts/setup-hooks.sh" && \
+            echo -e "${GREEN}✅ Memory persistence hooks installed${NC}" || \
+            echo -e "${YELLOW}⚠️  Hook setup skipped (non-critical)${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Hook setup script not found — skipping${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  jq not installed — hooks require manual setup${NC}"
+    echo -e "${YELLOW}   Install jq, then run: $PLUGIN_DIR/scripts/setup-hooks.sh${NC}"
+fi
+
 # Success summary
 echo ""
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
