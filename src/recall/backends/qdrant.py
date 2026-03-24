@@ -241,19 +241,22 @@ class QdrantBackend:
         legacy = self.is_legacy_collection(collection_name)
 
         if legacy:
-            results = self.client.search(
+            results = self.client.query_points(
                 collection_name=collection_name,
-                query_vector=query_vector.tolist(),
+                query=query_vector.tolist(),
                 limit=top_k,
                 with_vectors=True,
-            )
+                with_payload=True,
+            ).points
         else:
-            results = self.client.search(
+            results = self.client.query_points(
                 collection_name=collection_name,
-                query_vector=("dense", query_vector.tolist()),
+                query=query_vector.tolist(),
+                using="dense",
                 limit=top_k,
                 with_vectors=True,
-            )
+                with_payload=True,
+            ).points
 
         return self._results_to_chunks(results)
 

@@ -230,7 +230,9 @@ class TestQdrantBackendOperations:
         mock_result.vector = [0.1] * 384
         mock_result.score = 0.95
 
-        mock_backend._mock_instance.search.return_value = [mock_result]
+        query_response = MagicMock()
+        query_response.points = [mock_result]
+        mock_backend._mock_instance.query_points.return_value = query_response
 
         query_vector = np.array([0.1] * 384, dtype=np.float32)
         results = mock_backend.search("recall_384d", query_vector, top_k=5)
@@ -238,12 +240,13 @@ class TestQdrantBackendOperations:
         assert len(results) == 1
         assert results[0].content == "Test content"
         assert results[0].id == "chunk-123"
-        # Legacy uses unnamed query_vector
-        call_kwargs = mock_backend._mock_instance.search.call_args[1]
-        assert isinstance(call_kwargs["query_vector"], list)
+        # Legacy uses plain query (no 'using' param)
+        call_kwargs = mock_backend._mock_instance.query_points.call_args[1]
+        assert isinstance(call_kwargs["query"], list)
+        assert "using" not in call_kwargs
 
     def test_search_named_vectors(self, mock_backend):
-        """Verify search with named vectors uses ('dense', vector) tuple."""
+        """Verify search with named vectors uses 'using' parameter."""
         mock_result = MagicMock()
         mock_result.id = "test-uuid"
         mock_result.payload = {
@@ -254,17 +257,18 @@ class TestQdrantBackendOperations:
         mock_result.vector = {"dense": [0.1] * 384}
         mock_result.score = 0.95
 
-        mock_backend._mock_instance.search.return_value = [mock_result]
+        query_response = MagicMock()
+        query_response.points = [mock_result]
+        mock_backend._mock_instance.query_points.return_value = query_response
 
         query_vector = np.array([0.1] * 384, dtype=np.float32)
         results = mock_backend.search("recall_384d", query_vector, top_k=5)
 
         assert len(results) == 1
         assert results[0].content == "Test content"
-        # Named uses ("dense", vector) tuple
-        call_kwargs = mock_backend._mock_instance.search.call_args[1]
-        assert isinstance(call_kwargs["query_vector"], tuple)
-        assert call_kwargs["query_vector"][0] == "dense"
+        # Named vectors uses 'using' param
+        call_kwargs = mock_backend._mock_instance.query_points.call_args[1]
+        assert call_kwargs["using"] == "dense"
 
     def test_search_no_vector_error(self, mock_backend):
         """Verify error when search returns no vectors."""
@@ -274,7 +278,9 @@ class TestQdrantBackendOperations:
         mock_result.payload = {"content": "Test", "original_id": "test"}
         mock_result.vector = None
 
-        mock_backend._mock_instance.search.return_value = [mock_result]
+        query_response = MagicMock()
+        query_response.points = [mock_result]
+        mock_backend._mock_instance.query_points.return_value = query_response
 
         query_vector = np.array([0.1] * 384, dtype=np.float32)
 
@@ -313,7 +319,9 @@ class TestQdrantBackendOperations:
         mock_result.id = "test-uuid"
         mock_result.payload = {"content": "Test", "original_id": "chunk-1", "metadata": {}}
         mock_result.vector = [0.1] * 384
-        mock_backend._mock_instance.search.return_value = [mock_result]
+        query_response = MagicMock()
+        query_response.points = [mock_result]
+        mock_backend._mock_instance.query_points.return_value = query_response
 
         from qdrant_client.models import SparseVector
 
@@ -323,9 +331,9 @@ class TestQdrantBackendOperations:
         results = mock_backend.hybrid_search("recall_384d", query_vector, sparse_query, top_k=5)
 
         assert len(results) == 1
-        # Should have used client.search, not query_points
-        mock_backend._mock_instance.search.assert_called_once()
-        mock_backend._mock_instance.query_points.assert_not_called()
+        # Legacy fallback uses query_points (no 'using' param)
+        call_kwargs = mock_backend._mock_instance.query_points.call_args[1]
+        assert "using" not in call_kwargs
 
     def test_get_all_chunks_unnamed_vectors(self, mock_backend):
         """Verify get_all_chunks with unnamed (legacy) vectors."""
@@ -345,7 +353,11 @@ class TestQdrantBackendOperations:
         """Verify get_all_chunks extracts dense from named vector dict."""
         mock_point = MagicMock()
         mock_point.id = "test-uuid"
-        mock_point.payload = {"content": "Named content", "original_id": "chunk-456", "metadata": {}}
+        mock_point.payload = {
+            "content": "Named content",
+            "original_id": "chunk-456",
+            "metadata": {},
+        }
         mock_point.vector = {"dense": [0.2] * 384}
 
         mock_backend._mock_instance.scroll.return_value = ([mock_point], None)
