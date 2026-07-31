@@ -82,12 +82,26 @@ class ModeMigration:
             console.print(f"\n[bold cyan]Migrating collection: {collection_name}[/bold cyan]")
 
             try:
-                # Get collection info
+                # Get collection info — handle both named and unnamed vector schemas
                 collection_info = self.source_backend.client.get_collection(collection_name)
-                vector_size = collection_info.config.params.vectors.size  # type: ignore
-                distance = collection_info.config.params.vectors.distance  # type: ignore
+                vectors_config = collection_info.config.params.vectors
 
-                console.print(f"  Vector size: {vector_size}D")
+                from qdrant_client.models import SparseVectorParams, VectorParams
+
+                if isinstance(vectors_config, dict):
+                    # Named vector schema (dict of {"dense": VectorParams, ...})
+                    dense_config = vectors_config.get("dense", list(vectors_config.values())[0])
+                    vector_size = dense_config.size
+                    distance = dense_config.distance
+                    is_named = True
+                    console.print(f"  Vector size: {vector_size}D (named)")
+                else:
+                    # Unnamed (legacy) schema — VectorParams directly
+                    vector_size = vectors_config.size  # type: ignore[union-attr]
+                    distance = vectors_config.distance  # type: ignore[union-attr]
+                    is_named = False
+                    console.print(f"  Vector size: {vector_size}D (unnamed)")
+
                 console.print(f"  Points count: {collection_info.points_count}")
 
                 if dry_run:
@@ -97,14 +111,25 @@ class ModeMigration:
                     migrated_points += points_count
                     continue
 
-                # Create collection in target
-                from qdrant_client.models import VectorParams
-
+                # Create collection in target — preserve source schema type
                 try:
-                    self.target_backend.client.create_collection(
-                        collection_name=collection_name,
-                        vectors_config=VectorParams(size=vector_size, distance=distance),
-                    )
+                    if is_named:
+                        # Preserve named vector + sparse schema
+                        sparse_config = getattr(collection_info.config.params, "sparse_vectors", None)
+                        create_kwargs: dict = {
+                            "collection_name": collection_name,
+                            "vectors_config": {"dense": VectorParams(size=vector_size, distance=distance)},
+                        }
+                        if sparse_config:
+                            create_kwargs["sparse_vectors_config"] = sparse_config
+                        else:
+                            create_kwargs["sparse_vectors_config"] = {"sparse": SparseVectorParams()}
+                        self.target_backend.client.create_collection(**create_kwargs)
+                    else:
+                        self.target_backend.client.create_collection(
+                            collection_name=collection_name,
+                            vectors_config=VectorParams(size=vector_size, distance=distance),
+                        )
                     console.print("  ✅ Created target collection")
                 except Exception as e:
                     if "already exists" in str(e).lower():
