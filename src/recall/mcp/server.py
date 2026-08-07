@@ -14,13 +14,15 @@
 
 """Recall MCP Server - Semantic vector memory for coding agents."""
 
+from __future__ import annotations
+
 import logging
 import os
 import sys
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, Union
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
@@ -30,7 +32,15 @@ from recall.backends.qdrant import QdrantBackend
 from recall.chunking.factory import ChunkerFactory
 from recall.config.loader import Config, load_config
 from recall.core.store import UnifiedVectorStore
-from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
+from recall.embedders.ollama import OllamaEmbedder
+
+if TYPE_CHECKING:
+    from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
+
+# Either backend satisfies the embedder protocol (.name, .dimension, embed).
+# SentenceTransformerEmbedder is imported lazily because it pulls in torch,
+# which has no wheels on Windows ARM64.
+Embedder = Union["SentenceTransformerEmbedder", OllamaEmbedder]
 
 # Load .env configuration from ~/.recall/.env
 env_file = Path.home() / ".recall" / ".env"
@@ -58,13 +68,11 @@ mcp = FastMCP("recall")
 # Global components (initialized lazily)
 _config: Config | None = None
 _chunker_factory: ChunkerFactory | None = None
-_embedder: SentenceTransformerEmbedder | None = None
+_embedder: Embedder | None = None
 _store: UnifiedVectorStore | None = None
 
 
-def get_components() -> (
-    tuple[Config, ChunkerFactory, SentenceTransformerEmbedder, UnifiedVectorStore]
-):
+def get_components() -> tuple[Config, ChunkerFactory, Embedder, UnifiedVectorStore]:
     """Get or initialize Recall components."""
     global _config, _chunker_factory, _embedder, _store
 
@@ -81,8 +89,26 @@ def get_components() -> (
         # Initialize chunker factory
         _chunker_factory = ChunkerFactory()
 
-        # Initialize embedder
-        _embedder = SentenceTransformerEmbedder(_config.embedder_model)
+        # Initialize embedder.
+        # RECALL_EMBEDDER_TYPE=ollama routes embedding to an Ollama instance.
+        # This is required on Windows ARM64 (no torch wheels), and is also how
+        # the Mac runs since 2026-08-07 so both machines write the SAME vector
+        # space into the shared recall_768d collection. Two implementations of
+        # the same model do NOT agree - sentence-transformers arctic-embed-m vs
+        # ollama snowflake-arctic-embed:110m measure ~0.90 cosine on identical
+        # text, which is a silent retrieval skew, not an error.
+        if os.environ.get("RECALL_EMBEDDER_TYPE") == "ollama":
+            _embedder = OllamaEmbedder(
+                model=os.environ.get("RECALL_EMBEDDER_MODEL", "snowflake-arctic-embed:110m"),
+                host=os.environ.get("RECALL_OLLAMA_HOST", "localhost"),
+                port=int(os.environ.get("RECALL_OLLAMA_PORT", "11434")),
+            )
+        else:
+            from recall.embedders.sentence_transformer import (
+                SentenceTransformerEmbedder,
+            )
+
+            _embedder = SentenceTransformerEmbedder(_config.embedder_model)
 
         # Initialize Qdrant backend based on mode
         # Supports both embedded (file) and network (Docker) modes
