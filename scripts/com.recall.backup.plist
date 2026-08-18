@@ -16,9 +16,18 @@
     <key>WorkingDirectory</key>
     <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem</string>
 
-    <!-- Run every 6 hours -->
-    <key>StartInterval</key>
-    <integer>21600</integer>
+    <!-- Run at fixed wall-clock hours: 02, 08, 14, 20.
+         MUST be calendar-based, not StartInterval. The daily/weekly promotion in
+         backup-qdrant-auto.sh tests `date +%H` = "02"; a relative interval drifts
+         on every sleep and reboot, so that slot was only ever hit by luck.
+         Daily promotion stopped 2026-08-10; weekly missed Sunday 2026-08-16. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+    </array>
 
     <!-- Also run at startup (5 minutes after boot) -->
     <key>RunAtLoad</key>
