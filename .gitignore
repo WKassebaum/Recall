@@ -73,3 +73,7 @@ temp/
 .recall-session-state.json
 .recall-session-handoff.json
 .recall-breadcrumbs.jsonl
+
+# Backup archives: Qdrant snapshots of a store holding medical data.
+# This repo is PUBLIC and has no git-crypt. Never track these.
+backups/
