@@ -9,12 +9,12 @@
     <!-- Program to run -->
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem/scripts/backup-qdrant-auto.sh</string>
+        <string>@@PROJECT_ROOT@@/scripts/backup-qdrant-auto.sh</string>
     </array>
 
     <!-- Working directory -->
     <key>WorkingDirectory</key>
-    <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem</string>
+    <string>@@PROJECT_ROOT@@</string>
 
     <!-- Run at fixed wall-clock hours: 02, 08, 14, 20.
          MUST be calendar-based, not StartInterval. The daily/weekly promotion in
@@ -35,11 +35,11 @@
 
     <!-- Standard output log -->
     <key>StandardOutPath</key>
-    <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem/logs/backup-stdout.log</string>
+    <string>@@HOME@@/.recall/backups/backup-stdout.log</string>
 
     <!-- Error log -->
     <key>StandardErrorPath</key>
-    <string>/Users/wrk/WorkDev/MCP-Dev/SemVecMem/logs/backup-stderr.log</string>
+    <string>@@HOME@@/.recall/backups/backup-stderr.log</string>
 
     <!-- Keep job alive (restart on failure) -->
     <key>KeepAlive</key>
@@ -53,7 +53,7 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin</string>
     </dict>
 </dict>
 </plist>

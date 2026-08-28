@@ -330,27 +330,29 @@ less logs/backup-stdout.log
 
 ### Change Backup Frequency
 
-Edit `scripts/com.recall.backup.plist`:
+Edit `scripts/com.recall.backup.plist.template` (the tracked file; the
+un-suffixed `.plist` beside it is rendered per machine by
+`setup-auto-backup.sh` and is gitignored because it holds absolute paths):
 
 ```xml
-<!-- Current: Every 6 hours (21600 seconds) -->
-<key>StartInterval</key>
-<integer>21600</integer>
-
-<!-- Change to every 4 hours (14400 seconds) -->
-<key>StartInterval</key>
-<integer>14400</integer>
-
-<!-- Change to every 12 hours (43200 seconds) -->
-<key>StartInterval</key>
-<integer>43200</integer>
+<!-- Current: fixed wall-clock hours 02, 08, 14, 20 -->
+<key>StartCalendarInterval</key>
+<array>
+    <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+</array>
 ```
+
+Keep it calendar-based. `backup-qdrant-auto.sh` promotes daily/weekly
+backups only when it runs in the 02 hour, and a relative `StartInterval`
+drifts on every sleep and reboot, so that slot was only hit by luck. Keep
+the 02:00 entry whatever else you change.
 
 **Apply changes:**
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.recall.backup.plist
-cp scripts/com.recall.backup.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.recall.backup.plist
+./scripts/setup-auto-backup.sh   # re-renders, unloads, reinstalls, reloads
 ```
 
 ### Change Retention Periods
