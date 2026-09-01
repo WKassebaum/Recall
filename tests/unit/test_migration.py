@@ -155,7 +155,7 @@ class TestMigrationTool:
     def mock_components(self) -> dict:
         """Create mocked components for testing."""
         with patch("recall.cli.migrate.load_config") as mock_config, patch(
-            "recall.cli.migrate.SentenceTransformerEmbedder"
+            "recall.embedders.sentence_transformer.SentenceTransformerEmbedder"
         ) as mock_embedder_class, patch(
             "recall.cli.migrate.QdrantBackend"
         ) as mock_backend_class, patch(

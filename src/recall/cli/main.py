@@ -19,7 +19,6 @@ from recall.cli.recover import recover
 from recall.cli.setup import setup
 from recall.config.loader import load_config
 from recall.core.store import SearchResult, UnifiedVectorStore
-from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
 
 
 @click.group()
@@ -72,6 +71,9 @@ def ingest(
 
     # Initialize components
     config = load_config("config.yaml")
+
+    from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
+
     embedder = SentenceTransformerEmbedder(config.embedder_model)
     backend = QdrantBackend(host=config.qdrant_host, port=config.qdrant_port)
     store = UnifiedVectorStore(backend=backend)
@@ -141,6 +143,9 @@ def search_command(
     """
     # Initialize components
     config = load_config("config.yaml")
+
+    from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
+
     embedder = SentenceTransformerEmbedder(config.embedder_model)
     backend = QdrantBackend(host=config.qdrant_host, port=config.qdrant_port)
     store = UnifiedVectorStore(backend=backend)
@@ -160,6 +165,9 @@ def stats() -> None:
     """Show statistics about stored memories."""
     # Initialize components
     config = load_config("config.yaml")
+
+    from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
+
     embedder = SentenceTransformerEmbedder(config.embedder_model)
     backend = QdrantBackend(host=config.qdrant_host, port=config.qdrant_port)
     store = UnifiedVectorStore(backend=backend)

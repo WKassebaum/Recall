@@ -14,7 +14,6 @@ from recall.backends.qdrant import QdrantBackend
 from recall.config.loader import load_config
 from recall.core.store import Chunk, UnifiedVectorStore
 from recall.embedders.base import EmbedderModel
-from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
 
 
 @dataclass
@@ -222,6 +221,8 @@ class MigrationTool:
         - "embedded" (default): Use local file storage at RECALL_QDRANT_PATH
         """
         config = load_config("config.yaml")
+
+        from recall.embedders.sentence_transformer import SentenceTransformerEmbedder
 
         source_embedder = SentenceTransformerEmbedder(self.source_model)
         target_embedder = SentenceTransformerEmbedder(self.target_model)

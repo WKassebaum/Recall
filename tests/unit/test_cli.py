@@ -25,7 +25,7 @@ class TestCLICommands:
     def mock_components(self) -> None:
         """Mock all external dependencies."""
         with patch("recall.cli.main.load_config") as mock_config, patch(
-            "recall.cli.main.SentenceTransformerEmbedder"
+            "recall.embedders.sentence_transformer.SentenceTransformerEmbedder"
         ) as mock_embedder, patch("recall.cli.main.QdrantBackend") as mock_backend, patch(
             "recall.cli.main.UnifiedVectorStore"
         ) as mock_store, patch(
