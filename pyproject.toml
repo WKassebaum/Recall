@@ -83,10 +83,12 @@ addopts = [
     "--cov=recall",
     "--cov-report=term-missing",
     "--cov-report=html",
+    "-m", "not integration",
 ]
 testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
+    "integration: needs a THROWAWAY Qdrant in RECALL_TEST_QDRANT_URL; excluded by default, select with -m integration",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "benchmark: marks tests as benchmark tests (deselect with '-m \"not benchmark\"')",
 ]
