@@ -17,22 +17,18 @@ class TestEndToEndIngestion:
     """Waypoint 6 tests - End-to-end pipeline validation."""
 
     @pytest.fixture
-    def cleanup_collections(self) -> None:
-        """Clean up test collections before and after each test."""
-        # Cleanup before test (ensure clean state)
-        backend = QdrantBackend(host="localhost", port=6333)
-        try:
-            backend.delete_collection("recall_768d")
-        except Exception:
-            pass
+    def cleanup_collections(self, integration_backend) -> None:
+        """Drop the collections this test writes, before and after, on the TEST target only.
 
+        conftest redirects every network QdrantBackend to RECALL_TEST_QDRANT_URL, so the
+        names below can only ever resolve on the throwaway instance. Errors are not
+        swallowed: see conftest.drop_collections for why.
+        """
+        from tests.conftest import drop_collections
+
+        drop_collections(integration_backend, ["recall_768d"])
         yield
-
-        # Cleanup after test
-        try:
-            backend.delete_collection("recall_768d")
-        except Exception:
-            pass
+        drop_collections(integration_backend, ["recall_768d"])
 
     def test_full_ingestion_pipeline(self, cleanup_collections: None) -> None:
         """Waypoint 6: Verify complete ingestion pipeline works."""

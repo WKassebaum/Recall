@@ -10,7 +10,6 @@ Comprehensive end-to-end validation of all system components working together:
 """
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -25,25 +24,18 @@ class TestSystemIntegration:
     """Waypoint 16: System-wide integration tests."""
 
     @pytest.fixture
-    def cleanup_all_collections(self) -> None:
-        """Clean up all test collections before and after tests."""
-        backend = QdrantBackend(host="localhost", port=6333)
+    def cleanup_all_collections(self, integration_backend) -> None:
+        """Drop every collection these tests write, before and after, on the TEST target only.
 
-        # Cleanup before
-        for collection in ["recall_384d", "recall_768d", "recall_1024d"]:
-            try:
-                backend.delete_collection(collection)
-            except Exception:
-                pass
+        conftest redirects every network QdrantBackend to RECALL_TEST_QDRANT_URL; these names
+        cannot resolve on a production store. Errors are not swallowed (conftest.drop_collections).
+        """
+        from tests.conftest import drop_collections
 
+        names = ["recall_384d", "recall_768d", "recall_1024d"]
+        drop_collections(integration_backend, names)
         yield
-
-        # Cleanup after
-        for collection in ["recall_384d", "recall_768d", "recall_1024d"]:
-            try:
-                backend.delete_collection(collection)
-            except Exception:
-                pass
+        drop_collections(integration_backend, names)
 
     def test_end_to_end_multi_content_workflow(self, cleanup_all_collections: None) -> None:
         """Waypoint 16: Complete workflow with multiple content types."""

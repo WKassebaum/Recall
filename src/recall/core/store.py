@@ -28,6 +28,29 @@ if TYPE_CHECKING:
     from recall.backends.qdrant import QdrantBackend
 
 
+from datetime import datetime as _dt
+from datetime import timezone as _tz
+
+_EPOCH = _dt(1970, 1, 1, tzinfo=_tz.utc)
+_MAX_TS = _dt.max.replace(tzinfo=_tz.utc)
+
+
+def _parse_ts(value) -> _dt | None:
+    """ISO-8601 -> aware UTC datetime, or None when missing or unparseable.
+
+    Chunks restored from older backups carry no ``ingested_at``, or a naive one;
+    comparing those against an aware bound raised TypeError and took every
+    time-filtered query down with it (2026-09-10). Naive values are taken as UTC.
+    """
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        ts = _dt.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return ts if ts.tzinfo else ts.replace(tzinfo=_tz.utc)
+
+
 class DimensionMismatchError(Exception):
     """Raised when embedding dimension doesn't match expected dimension."""
 
@@ -382,23 +405,18 @@ class UnifiedVectorStore:
         Returns:
             Chunks within time range
         """
-        from datetime import datetime, timezone
-
-        start_time_str, end_time_str = time_range
-        start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-        end_time = (
-            datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
-            if end_time_str
-            else datetime.max.replace(tzinfo=timezone.utc)
-        )
+        start_time = _parse_ts(time_range[0])
+        if start_time is None:
+            raise ValueError(f"time_range start is not an ISO-8601 timestamp: {time_range[0]!r}")
+        end_time = _parse_ts(time_range[1]) if time_range[1] else _MAX_TS
+        if end_time is None:
+            raise ValueError(f"time_range end is not an ISO-8601 timestamp: {time_range[1]!r}")
 
         filtered = []
         for chunk in chunks:
-            ingested_at_str = chunk.metadata.get("ingested_at")
-            if not ingested_at_str:
-                continue  # Skip chunks without timestamps
-
-            ingested_at = datetime.fromisoformat(ingested_at_str.replace("Z", "+00:00"))
+            ingested_at = _parse_ts(chunk.metadata.get("ingested_at"))
+            if ingested_at is None:
+                continue  # no usable timestamp: cannot be inside any range
             if start_time <= ingested_at <= end_time:
                 filtered.append(chunk)
 
@@ -479,14 +497,10 @@ class UnifiedVectorStore:
         Returns:
             SearchResult list sorted by time (oldest to newest)
         """
-        from datetime import datetime
-
-        # Sort by ingested_at timestamp
+        # Sort by ingested_at; chunks with no usable timestamp sort first (epoch)
         sorted_chunks = sorted(
             chunks,
-            key=lambda c: datetime.fromisoformat(
-                c.metadata.get("ingested_at", "1970-01-01T00:00:00+00:00").replace("Z", "+00:00")
-            ),
+            key=lambda c: _parse_ts(c.metadata.get("ingested_at")) or _EPOCH,
         )
 
         # Convert to SearchResult (score=0.0 for chronological)
