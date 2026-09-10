@@ -58,8 +58,22 @@ def main() -> None:
                 parts.append(f"  - {m}")
         if summary_tail:
             parts.append(f"\nLast context:\n{summary_tail}")
+        events = handoff.get("events_logged", 0)
         if ingests > 0:
             parts.append(f"\n({ingests} memories were saved to Recall)")
+        elif milestones or events:
+            # Report the zero case too. Nothing in Recall ingests on its own -
+            # the hooks only keep breadcrumbs and nudge - so a session that
+            # never calls ingest_memory() leaves no semantic trace at all.
+            # Staying silent here meant the one outcome worth flagging was
+            # the one outcome never mentioned.
+            parts.append(
+                f"\n[!] The previous session logged {events} milestone(s) but "
+                "saved 0 memories to Recall, so none of it is searchable. If "
+                "anything above is worth keeping, ingest it now with "
+                f"ingest_memory(session_id='{prev_id}') - use that id, not "
+                "this session's, so the memory keeps its original date."
+            )
     else:
         parts.append("\nNo previous session handoff found.")
 
